@@ -100,9 +100,6 @@ const EXCLUDED_SONG_TAGS = new Set<string>(['disctotal', 'tracktotal']);
 const numericSortCollator = new Intl.Collator(undefined, { numeric: true });
 const collator = new Intl.Collator();
 
-// Tags that use IDs as values as opposed to the tag value
-const ID_TAGS = new Set<string>(['albumversion', 'mood']);
-
 const excludeMissing = (server?: null | ServerListItemWithCredential) => {
     if (!server) {
         return undefined;
@@ -496,7 +493,12 @@ export const NavidromeController: InternalControllerEndpoint = {
         }
 
         return res.body.similarSongs.song.map((song) =>
-            ssNormalize.song(song, apiClientProps.server),
+            ssNormalize.song(
+                song,
+                apiClientProps.server,
+                args.context?.pathReplace,
+                args.context?.pathReplaceWith,
+            ),
         );
     },
     getArtistList: async (args) => {
@@ -566,7 +568,12 @@ export const NavidromeController: InternalControllerEndpoint = {
         }
 
         return res.body.similarSongs2.song.map((song) =>
-            ssNormalize.song(song, apiClientProps.server),
+            ssNormalize.song(
+                song,
+                apiClientProps.server,
+                args.context?.pathReplace,
+                args.context?.pathReplaceWith,
+            ),
         );
     },
     getDownloadUrl: SubsonicController.getDownloadUrl,
@@ -823,7 +830,14 @@ export const NavidromeController: InternalControllerEndpoint = {
         return (
             (res.body.similarSongs?.song || [])
                 .filter((song) => song.id !== query.songId)
-                .map((song) => ssNormalize.song(song, apiClientProps.server)) || []
+                .map((song) =>
+                    ssNormalize.song(
+                        song,
+                        apiClientProps.server,
+                        args.context?.pathReplace,
+                        args.context?.pathReplaceWith,
+                    ),
+                ) || []
         );
     },
     getSongDetail: async (args) => {
@@ -948,13 +962,13 @@ export const NavidromeController: InternalControllerEndpoint = {
             if (!EXCLUDED_TAGS.has(tag.tagName)) {
                 if (tagsToValues.has(tag.tagName)) {
                     tagsToValues.get(tag.tagName)!.push({
-                        id: ID_TAGS.has(tag.tagName) ? tag.id : tag.tagValue,
+                        id: tag.id,
                         name: tag.tagValue,
                     });
                 } else {
                     tagsToValues.set(tag.tagName, [
                         {
-                            id: ID_TAGS.has(tag.tagName) ? tag.id : tag.tagValue,
+                            id: tag.id,
                             name: tag.tagValue,
                         },
                     ]);
@@ -1022,6 +1036,7 @@ export const NavidromeController: InternalControllerEndpoint = {
 
         const res = await NavidromeController.getSongList({
             apiClientProps,
+            context: args.context,
             query: {
                 artistIds: [query.artistId],
                 sortBy: SongListSort.PLAY_COUNT,

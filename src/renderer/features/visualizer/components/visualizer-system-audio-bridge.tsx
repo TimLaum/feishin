@@ -1,16 +1,17 @@
 import isElectron from 'is-electron';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useIsLocalVisualizerSurfaceVisible } from '/@/renderer/features/player/hooks/use-is-local-visualizer-surface-visible';
 import { useVisualizerSystemAudio } from '/@/renderer/features/player/hooks/use-visualizer-system-audio';
 import { closeLocalVisualizerSurfaces } from '/@/renderer/features/player/utils/close-local-visualizer-surfaces';
-import { usePlaybackType } from '/@/renderer/store';
+import { useMpvSettings, usePlaybackType } from '/@/renderer/store';
 import { Button } from '/@/shared/components/button/button';
 import { Group } from '/@/shared/components/group/group';
 import { Modal } from '/@/shared/components/modal/modal';
 import { Stack } from '/@/shared/components/stack/stack';
 import { Text } from '/@/shared/components/text/text';
+import { toast } from '/@/shared/components/toast/toast';
 import { useDisclosure } from '/@/shared/hooks/use-disclosure';
 import { PlayerType } from '/@/shared/types/types';
 
@@ -20,6 +21,21 @@ type PromptState = 'loading' | { consent: boolean };
 
 export function VisualizerSystemAudioBridgeHook() {
     const playbackType = usePlaybackType();
+    const isVisualizerSurfaceVisible = useIsLocalVisualizerSurfaceVisible();
+
+    useEffect(() => {
+        if (!isElectron()) {
+            return;
+        }
+
+        const shouldReportVisible = playbackType === PlayerType.LOCAL && isVisualizerSurfaceVisible;
+
+        window.api.visualizer.setLocalSurfaceVisible(shouldReportVisible);
+
+        return () => {
+            window.api.visualizer.setLocalSurfaceVisible(false);
+        };
+    }, [playbackType, isVisualizerSurfaceVisible]);
 
     if (!isElectron() || playbackType !== PlayerType.LOCAL) {
         return null;
@@ -31,11 +47,20 @@ export function VisualizerSystemAudioBridgeHook() {
 function VisualizerSystemAudioBridge() {
     const { t } = useTranslation();
     const playbackType = usePlaybackType();
+    const { audioExclusiveMode } = useMpvSettings();
     const isVisualizerSurfaceVisible = useIsLocalVisualizerSurfaceVisible();
     const [promptState, setPromptState] = useState<PromptState>('loading');
     const [sessionAllowCapture, setSessionAllowCapture] = useState(false);
+    const wasBlockedByExclusiveModeRef = useRef(false);
     const [isPromptOpen, { close: closePrompt, open: openPrompt, toggle: togglePrompt }] =
         useDisclosure(false);
+
+    const isExclusiveModeEnabled = audioExclusiveMode === 'yes';
+    const isVisualizerBlockedByExclusiveMode =
+        isElectron() &&
+        playbackType === PlayerType.LOCAL &&
+        isVisualizerSurfaceVisible &&
+        isExclusiveModeEnabled;
 
     const persistConsent = useCallback((granted: boolean) => {
         if (!isElectron() || !window.api.localSettings) {
@@ -67,6 +92,7 @@ function VisualizerSystemAudioBridge() {
     const eligibleForPrompt =
         isElectron() &&
         playbackType === PlayerType.LOCAL &&
+        !isExclusiveModeEnabled &&
         isVisualizerSurfaceVisible &&
         promptState !== 'loading' &&
         !promptState.consent &&
@@ -80,9 +106,23 @@ function VisualizerSystemAudioBridge() {
         }
     }, [eligibleForPrompt, closePrompt, openPrompt]);
 
+    useEffect(() => {
+        if (isVisualizerBlockedByExclusiveMode && !wasBlockedByExclusiveModeRef.current) {
+            toast.error({
+                message: t('visualizer.systemAudioExclusiveModeNotSupported'),
+            });
+            setSessionAllowCapture(false);
+            closePrompt();
+            closeLocalVisualizerSurfaces();
+        }
+
+        wasBlockedByExclusiveModeRef.current = isVisualizerBlockedByExclusiveMode;
+    }, [closePrompt, isVisualizerBlockedByExclusiveMode, t]);
+
     const shouldAttemptConnection =
         isElectron() &&
         playbackType === PlayerType.LOCAL &&
+        !isExclusiveModeEnabled &&
         isVisualizerSurfaceVisible &&
         promptState !== 'loading' &&
         (promptState.consent || sessionAllowCapture);
@@ -129,19 +169,17 @@ function VisualizerSystemAudioBridge() {
             handlers={{ close: closePrompt, open: openPrompt, toggle: togglePrompt }}
             opened={isPromptOpen}
             size="md"
-            title={t('visualizer.systemAudioConsentTitle', { postProcess: 'sentenceCase' })}
+            title={t('visualizer.systemAudioConsentTitle')}
             withCloseButton={false}
         >
             <Stack gap="lg">
-                <Text size="sm">
-                    {t('visualizer.systemAudioConsentBody', { postProcess: 'sentenceCase' })}
-                </Text>
+                <Text size="sm">{t('visualizer.systemAudioConsentBody')}</Text>
                 <Group justify="flex-end">
                     <Button onClick={handleDecline} variant="default">
-                        {t('visualizer.systemAudioConsentDecline', { postProcess: 'titleCase' })}
+                        {t('visualizer.systemAudioConsentDecline')}
                     </Button>
                     <Button onClick={handleAllow} variant="filled">
-                        {t('visualizer.systemAudioConsentAllow', { postProcess: 'titleCase' })}
+                        {t('visualizer.systemAudioConsentAllow')}
                     </Button>
                 </Group>
             </Stack>

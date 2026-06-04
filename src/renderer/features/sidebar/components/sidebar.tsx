@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { AnimatePresence, motion } from 'motion/react';
-import { CSSProperties, MouseEvent, useMemo } from 'react';
+import { MouseEvent, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import styles from './sidebar.module.css';
@@ -16,8 +16,10 @@ import { SidebarCollectionList } from '/@/renderer/features/sidebar/components/s
 import { SidebarIcon } from '/@/renderer/features/sidebar/components/sidebar-icon';
 import { SidebarItem } from '/@/renderer/features/sidebar/components/sidebar-item';
 import {
+    SidebarPlaylistAddDragContext,
     SidebarPlaylistList,
     SidebarSharedPlaylistList,
+    useSidebarPlaylistAddDragMonitor,
 } from '/@/renderer/features/sidebar/components/sidebar-playlist-list';
 import {
     useAppStore,
@@ -44,6 +46,17 @@ import { Text } from '/@/shared/components/text/text';
 import { Tooltip } from '/@/shared/components/tooltip/tooltip';
 import { ExplicitStatus, LibraryItem } from '/@/shared/types/domain-types';
 import { Platform } from '/@/shared/types/types';
+
+const SidebarPlaylistSection = () => {
+    const isAddDragActive = useSidebarPlaylistAddDragMonitor();
+
+    return (
+        <SidebarPlaylistAddDragContext.Provider value={isAddDragActive}>
+            <SidebarPlaylistList />
+            <SidebarSharedPlaylistList />
+        </SidebarPlaylistAddDragContext.Provider>
+    );
+};
 
 export const Sidebar = () => {
     const { t } = useTranslation();
@@ -124,9 +137,7 @@ export const Sidebar = () => {
                     <Accordion.Item value="library">
                         <Accordion.Control>
                             <Text fw={500} variant="secondary">
-                                {t('page.sidebar.myLibrary', {
-                                    postProcess: 'titleCase',
-                                })}
+                                {t('page.sidebar.myLibrary')}
                             </Text>
                         </Accordion.Control>
                         <Accordion.Panel>
@@ -143,12 +154,7 @@ export const Sidebar = () => {
                         </Accordion.Panel>
                     </Accordion.Item>
                     <SidebarCollectionList />
-                    {sidebarPlaylistList && (
-                        <>
-                            <SidebarPlaylistList />
-                            <SidebarSharedPlaylistList />
-                        </>
-                    )}
+                    {sidebarPlaylistList && <SidebarPlaylistSection />}
                 </Accordion>
             </ScrollArea>
             <AnimatePresence initial={false} mode="popLayout">
@@ -160,7 +166,6 @@ export const Sidebar = () => {
 
 const SidebarImage = () => {
     const { t } = useTranslation();
-    const leftWidth = useAppStore((state) => state.sidebar.leftWidth);
     const { setSideBar } = useAppStoreActions();
     const currentSong = usePlayerSong();
     const isRadioActive = useIsRadioActive();
@@ -217,18 +222,10 @@ const SidebarImage = () => {
             onClick={expandFullScreenPlayer}
             onContextMenu={handleToggleContextMenu}
             role="button"
-            style={
-                {
-                    '--sidebar-image-height': leftWidth,
-                } as CSSProperties
-            }
+            style={{ aspectRatio: 1 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
         >
-            <Tooltip
-                label={t('player.toggleFullscreenPlayer', {
-                    postProcess: 'sentenceCase',
-                })}
-            >
+            <Tooltip label={t('player.toggleFullscreenPlayer')}>
                 {isRadioActive && radioImageUrl ? (
                     <img className={styles.sidebarImage} loading="eager" src={radioImageUrl} />
                 ) : isRadioActive ? (
@@ -275,9 +272,7 @@ const SidebarImage = () => {
                     top: '1rem',
                 }}
                 tooltip={{
-                    label: t('common.collapse', {
-                        postProcess: 'titleCase',
-                    }),
+                    label: t('common.collapse'),
                     openDelay: 500,
                 }}
             />

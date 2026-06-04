@@ -23,6 +23,8 @@ export const THEME_DATA = [
     { label: 'One Dark', type: 'dark', value: AppTheme.ONE_DARK },
     { label: 'Solarized Dark', type: 'dark', value: AppTheme.SOLARIZED_DARK },
     { label: 'Solarized Light', type: 'light', value: AppTheme.SOLARIZED_LIGHT },
+    { label: 'Everforest Dark', type: 'dark', value: AppTheme.EVERFOREST_DARK },
+    { label: 'Everforest Light', type: 'light', value: AppTheme.EVERFOREST_LIGHT },
     { label: 'GitHub Dark', type: 'dark', value: AppTheme.GITHUB_DARK },
     { label: 'GitHub Light', type: 'light', value: AppTheme.GITHUB_LIGHT },
     { label: 'Glassy Dark', type: 'dark', value: AppTheme.GLASSY_DARK },
@@ -132,6 +134,11 @@ export const useAppTheme = (overrideTheme?: AppTheme) => {
                 document.body.appendChild(textStyleRef.current);
             }
 
+            // Note: we change the url to bust caches when changing the path
+            // The url provided here does NOT matter, validation is done
+            // on the main process. Any feishin:/ url will fetch the same
+            // item, which the renderer will check via magic number to be
+            // some font item
             textStyleRef.current.textContent = `
             @font-face {
                 font-family: "dynamic-font";

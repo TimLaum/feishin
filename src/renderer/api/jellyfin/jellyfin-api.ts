@@ -54,12 +54,30 @@ export const contract = c.router({
             400: jfType._response.error,
         },
     },
+    deleteArtistImage: {
+        body: null,
+        method: 'DELETE',
+        path: 'Items/:id/Images/Primary',
+        responses: {
+            204: jfType._response.deleteArtistImage,
+            400: jfType._response.error,
+        },
+    },
     deletePlaylist: {
         body: null,
         method: 'DELETE',
         path: 'items/:id',
         responses: {
             204: jfType._response.deletePlaylist,
+            400: jfType._response.error,
+        },
+    },
+    deletePlaylistImage: {
+        body: null,
+        method: 'DELETE',
+        path: 'Items/:id/Images/Primary',
+        responses: {
+            204: jfType._response.deletePlaylistImage,
             400: jfType._response.error,
         },
     },
@@ -356,6 +374,24 @@ export const contract = c.router({
             400: jfType._response.error,
         },
     },
+    uploadArtistImage: {
+        body: z.string(),
+        method: 'POST',
+        path: 'Items/:id/Images/Primary',
+        responses: {
+            204: jfType._response.uploadArtistImage,
+            400: jfType._response.error,
+        },
+    },
+    uploadPlaylistImage: {
+        body: z.string(),
+        method: 'POST',
+        path: 'Items/:id/Images/Primary',
+        responses: {
+            204: jfType._response.uploadPlaylistImage,
+            400: jfType._response.error,
+        },
+    },
 });
 
 const axiosClient = axios.create({});
@@ -404,11 +440,12 @@ export const createAuthHeader = (): string => {
 };
 
 export const jfApiClient = (args: {
+    forceRemoteUrl?: boolean;
     server: null | ServerListItemWithCredential;
     signal?: AbortSignal;
     url?: string;
 }) => {
-    const { server, signal, url } = args;
+    const { forceRemoteUrl, server, signal, url } = args;
 
     return initClient(contract, {
         api: async ({ body, headers, method, path }) => {
@@ -418,7 +455,7 @@ export const jfApiClient = (args: {
             const { params, path: api } = parsePath(path);
 
             if (server) {
-                const serverUrl = getServerUrl(server);
+                const serverUrl = getServerUrl(server, forceRemoteUrl);
                 baseUrl = serverUrl;
                 token = server?.credential;
             } else {
@@ -447,11 +484,7 @@ export const jfApiClient = (args: {
             } catch (e: any | AxiosError | Error) {
                 if (isAxiosError(e)) {
                     if (e.code === 'ERR_NETWORK') {
-                        throw new Error(
-                            i18n.t('error.networkError', {
-                                postProcess: 'sentenceCase',
-                            }) as string,
-                        );
+                        throw new Error(i18n.t('error.networkError') as string);
                     }
 
                     const error = e as AxiosError;

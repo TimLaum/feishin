@@ -13,6 +13,15 @@ export type GroupingType = 'all' | 'primary';
 
 const PRIMARY_RELEASE_TYPES = ['album', 'broadcast', 'ep', 'other', 'single'];
 
+const getNormalizedReleaseTypes = (album: Album): string[] => {
+    const rawReleaseTypes = [...(album.releaseTypes || []), album.releaseType || ''];
+    const normalizedReleaseTypes = rawReleaseTypes
+        .map((type) => type.trim().toLowerCase())
+        .filter(Boolean);
+
+    return [...new Set(normalizedReleaseTypes)];
+};
+
 export const groupAlbumsByReleaseType = (
     albums: Album[],
     routeId: string,
@@ -44,10 +53,9 @@ export const groupAlbumsByReleaseType = (
                 }
 
                 // Group by all release types
-                const releaseTypes = album.releaseTypes || [];
-                if (releaseTypes.length > 0) {
+                const normalizedTypes = getNormalizedReleaseTypes(album);
+                if (normalizedTypes.length > 0) {
                     // Sort release types: primaries first (alphabetically), then secondaries (alphabetically)
-                    const normalizedTypes = releaseTypes.map((type) => type.toLowerCase());
                     const primaryTypes = normalizedTypes
                         .filter((type) => PRIMARY_RELEASE_TYPES.includes(type))
                         .sort();
@@ -92,8 +100,7 @@ export const groupAlbumsByReleaseType = (
                 return acc;
             }
 
-            const releaseTypes = album.releaseTypes || [];
-            const normalizedTypes = releaseTypes.map((type) => type.toLowerCase());
+            const normalizedTypes = getNormalizedReleaseTypes(album);
 
             let matchedType: null | string = null;
 
@@ -107,6 +114,8 @@ export const groupAlbumsByReleaseType = (
                 matchedType = 'broadcast';
             } else if (normalizedTypes.includes('other')) {
                 matchedType = 'other';
+            } else if (normalizedTypes.length > 0) {
+                matchedType = normalizedTypes[0];
             } else {
                 matchedType = 'album';
             }
@@ -173,77 +182,43 @@ export const getArtistAlbumsGrouped = (
     const getDisplayNameForType = (releaseType: string): string => {
         switch (releaseType) {
             case 'album':
-                return t('releaseType.primary.album', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.primary.album');
             case 'appears-on':
-                return t('page.albumArtistDetail.appearsOn', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('page.albumArtistDetail.appearsOn');
             case 'audiobook':
-                return t('releaseType.secondary.audiobook', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.audiobook');
             case 'audio drama':
-                return t('releaseType.secondary.audioDrama', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.audioDrama');
             case 'broadcast':
-                return t('releaseType.primary.broadcast', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.primary.broadcast');
             case 'compilation':
-                return t('releaseType.secondary.compilation', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.compilation');
             case 'demo':
-                return t('releaseType.secondary.demo', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.demo');
             case 'dj-mix':
-                return t('releaseType.secondary.djMix', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.djMix');
             case 'ep':
                 return t('releaseType.primary.ep', {
                     postProcess: 'upperCase',
                 });
             case 'field recording':
-                return t('releaseType.secondary.fieldRecording', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.fieldRecording');
             case 'interview':
-                return t('releaseType.secondary.interview', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.interview');
             case 'live':
-                return t('releaseType.secondary.live', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.live');
             case 'mixtape/street':
-                return t('releaseType.secondary.mixtape', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.mixtape');
             case 'other':
-                return t('releaseType.primary.other', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.primary.other');
             case 'remix':
-                return t('releaseType.secondary.remix', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.remix');
             case 'single':
-                return t('releaseType.primary.single', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.primary.single');
             case 'soundtrack':
-                return t('releaseType.secondary.soundtrack', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.soundtrack');
             case 'spokenword':
-                return t('releaseType.secondary.spokenWord', {
-                    postProcess: 'sentenceCase',
-                });
+                return t('releaseType.secondary.spokenWord');
             default:
                 return titleCase(releaseType);
         }
@@ -292,11 +267,11 @@ export const getArtistAlbumsGrouped = (
             const types = releaseType.split('/');
             return types.some((type) => {
                 const enumValue = releaseTypeToEnumMap[type];
-                return enumValue ? enabledReleaseTypeEnums.has(enumValue) : false;
+                return enumValue ? enabledReleaseTypeEnums.has(enumValue) : true;
             });
         }
         const enumValue = releaseTypeToEnumMap[releaseType];
-        return enumValue ? enabledReleaseTypeEnums.has(enumValue) : false;
+        return enumValue ? enabledReleaseTypeEnums.has(enumValue) : true;
     };
 
     const releaseTypeEntries = Object.entries(albumsByReleaseType)
