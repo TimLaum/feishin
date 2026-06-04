@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { AddToPlaylistAction } from '/@/renderer/features/context-menu/actions/add-to-playlist-action';
+import { DeleteFromNasAction } from '/@/renderer/features/context-menu/actions/delete-from-nas-action';
 import { DownloadAction } from '/@/renderer/features/context-menu/actions/download-action';
 import { GetInfoAction } from '/@/renderer/features/context-menu/actions/get-info-action';
 import { GoToAction } from '/@/renderer/features/context-menu/actions/go-to-action';
@@ -44,6 +45,8 @@ export const SongContextMenu = ({ items, type }: SongContextMenuProps) => {
             <ShowInFileExplorerAction items={items} />
             <ContextMenu.Divider />
             <GetInfoAction disabled={items.length === 0} items={items} />
+            <ContextMenu.Divider />
+            <DeleteFromNasAction items={items} />
         </ContextMenu.Content>
     );
 };

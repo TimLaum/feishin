@@ -1037,6 +1037,12 @@ export const sidebarItems: SidebarItemType[] = [
         label: i18n.t('page.sidebar.settings'),
         route: AppRoute.SETTINGS,
     },
+    {
+        disabled: false,
+        id: 'Web Search',
+        label: i18n.t('page.sidebar.webSearch'),
+        route: AppRoute.WEB_SEARCH,
+    },
 ];
 
 const homeItems = Object.values(HomeItem).map((item) => ({

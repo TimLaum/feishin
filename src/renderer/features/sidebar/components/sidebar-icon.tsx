@@ -1,6 +1,8 @@
 import {
     RiAlbumFill,
     RiAlbumLine,
+    RiEarthFill,
+    RiEarthLine,
     RiFlag2Fill,
     RiFlag2Line,
     RiFolder3Fill,
@@ -78,6 +80,9 @@ export const SidebarIcon = ({ active, route, size }: SidebarIconProps) => {
             case generatePath(AppRoute.SEARCH, { itemType: LibraryItem.SONG }):
                 if (isActive) return <RiSearchFill size={size} />;
                 return <RiSearchLine size={size} />;
+            case AppRoute.WEB_SEARCH:
+                if (isActive) return <RiEarthFill size={size} />;
+                return <RiEarthLine size={size} />;
             default:
                 if (route.startsWith(AppRoute.FAVORITES)) {
                     if (isActive) return <RiHeartFill size={size} />;

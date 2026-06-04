@@ -80,6 +80,10 @@ const RadioListRoute = lazy(() => import('/@/renderer/features/radio/routes/radi
 
 const SearchRoute = lazy(() => import('/@/renderer/features/search/routes/search-route'));
 
+const WebSearchRoute = lazy(
+    () => import('/@/renderer/features/web-search/routes/web-search-route'),
+);
+
 const FavoritesRoute = lazy(() => import('/@/renderer/features/favorites/routes/favorites-route'));
 
 const SettingsRoute = lazy(() => import('/@/renderer/features/settings/routes/settings-route'));
@@ -318,6 +322,10 @@ export const AppRouter = () => {
                                                 />
                                             </Route>
                                         </Route>
+                                        <Route
+                                            element={<WebSearchRoute />}
+                                            path={AppRoute.WEB_SEARCH}
+                                        />
                                         <Route element={<InvalidRoute />} path="*" />
                                     </Route>
                                 </Route>

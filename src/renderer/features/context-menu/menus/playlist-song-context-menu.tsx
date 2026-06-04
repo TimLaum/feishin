@@ -6,6 +6,7 @@ import { GetInfoAction } from '/@/renderer/features/context-menu/actions/get-inf
 import { GoToAction } from '/@/renderer/features/context-menu/actions/go-to-action';
 import { PlayAction } from '/@/renderer/features/context-menu/actions/play-action';
 import { PlayTrackRadioAction } from '/@/renderer/features/context-menu/actions/play-track-radio-action';
+import { DeleteFromNasAction } from '/@/renderer/features/context-menu/actions/delete-from-nas-action';
 import { RemoveFromPlaylistAction } from '/@/renderer/features/context-menu/actions/remove-from-playlist-action';
 import { SetFavoriteAction } from '/@/renderer/features/context-menu/actions/set-favorite-action';
 import { SetRatingAction } from '/@/renderer/features/context-menu/actions/set-rating-action';
@@ -47,6 +48,8 @@ export const PlaylistSongContextMenu = ({ items, type }: PlaylistSongContextMenu
             <ShowInFileExplorerAction items={items} />
             <ContextMenu.Divider />
             <GetInfoAction disabled={items.length === 0} items={items} />
+            <ContextMenu.Divider />
+            <DeleteFromNasAction items={items} />
         </ContextMenu.Content>
     );
 };

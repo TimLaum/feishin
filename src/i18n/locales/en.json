@@ -8,6 +8,7 @@
         "goToCurrent": "go to current item",
         "createPlaylist": "create $t(entity.playlist, {\"count\": 1})",
         "createRadioStation": "create $t(entity.radioStation, {\"count\": 1})",
+        "deleteSong": "delete song",
         "deletePlaylist": "delete $t(entity.playlist, {\"count\": 1})",
         "deleteRadioStation": "delete $t(entity.radioStation, {\"count\": 1})",
         "selectAll": "select all",
@@ -634,7 +635,8 @@
             "search": "$t(common.search)",
             "settings": "$t(common.setting, {\"count\": 2})",
             "shared": "shared $t(entity.playlist, {\"count\": 2})",
-            "tracks": "$t(entity.track, {\"count\": 2})"
+            "tracks": "$t(entity.track, {\"count\": 2})",
+            "webSearch": "web search"
         },
         "trackList": {
             "artistTracks": "tracks by {{artist}}",
