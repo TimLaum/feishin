@@ -12,19 +12,35 @@ import {
     RiPlayFill,
 } from 'react-icons/ri';
 
+import { useAudioPreview } from '../hooks/use-audio-preview';
+import {
+    ActiveDownload,
+    NAS_API_BASE,
+    useWebSearchDownloadStore,
+} from '../store/web-search-download-store';
+
 import { Badge } from '/@/shared/components/badge/badge';
 import { Button } from '/@/shared/components/button/button';
 import { Center } from '/@/shared/components/center/center';
 import { Group } from '/@/shared/components/group/group';
 import { ScrollArea } from '/@/shared/components/scroll-area/scroll-area';
 import { Stack } from '/@/shared/components/stack/stack';
-import { Text } from '/@/shared/components/text/text';
 import { TextInput } from '/@/shared/components/text-input/text-input';
 import { TextTitle } from '/@/shared/components/text-title/text-title';
-
-import { ActiveDownload, NAS_API_BASE, useWebSearchDownloadStore } from '../store/web-search-download-store';
+import { Text } from '/@/shared/components/text/text';
 
 // ── Types ──────────────────────────────────────────────────────────────────
+
+export interface AlbumSearchResult {
+    artist: string;
+    cover_url: string;
+    deezer_id: number;
+    id: string;
+    source: string;
+    title: string;
+    track_count?: number;
+    year?: null | string;
+}
 
 export interface WebSearchResult {
     album: string;
@@ -36,18 +52,7 @@ export interface WebSearchResult {
     preview_url?: string;
     source: string;
     title: string;
-    year?: string | null;
-}
-
-export interface AlbumSearchResult {
-    artist: string;
-    cover_url: string;
-    deezer_id: number;
-    id: string;
-    source: string;
-    title: string;
-    track_count: number;
-    year?: string | null;
+    year?: null | string;
 }
 
 interface DownloadResponse {
@@ -70,9 +75,7 @@ const searchTracks = async (
         `${NAS_API_BASE}/search?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`,
     );
     if (!res.ok) throw new Error(`Search failed: ${res.statusText}`);
-    const data = await res.json();
-    if (data.length > 0) console.log('[DEBUG] track[0]:', JSON.stringify(data[0]));
-    return data;
+    return res.json();
 };
 
 const searchAlbums = async (
@@ -84,12 +87,10 @@ const searchAlbums = async (
         `${NAS_API_BASE}/search/albums?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`,
     );
     if (!res.ok) throw new Error(`Album search failed: ${res.statusText}`);
-    const data = await res.json();
-    if (data.length > 0) console.log('[DEBUG] album[0]:', JSON.stringify(data[0]));
-    return data;
+    return res.json();
 };
 
-const fetchAlbumTracks = async (albumId: number): Promise<WebSearchResult[]> => {
+export const fetchAlbumTracks = async (albumId: number): Promise<WebSearchResult[]> => {
     const res = await fetch(`${NAS_API_BASE}/album/${albumId}/tracks`);
     if (!res.ok) throw new Error(`Failed to load tracks: ${res.statusText}`);
     const data = await res.json();
@@ -133,7 +134,7 @@ const formatDuration = (seconds: number): string => {
     return `${m}:${String(s).padStart(2, '0')}`;
 };
 
-const queueDownload = async (
+export const queueDownload = async (
     result: WebSearchResult,
     storeId: string,
     setDownload: (id: string, d: ActiveDownload) => void,
@@ -149,7 +150,12 @@ const queueDownload = async (
         setDownload(storeId, {
             artist: result.artist,
             downloadId: download_id,
-            state: { downloadId: download_id, message: 'Searching…', progress: 0, status: 'active' },
+            state: {
+                downloadId: download_id,
+                message: 'Searching…',
+                progress: 0,
+                status: 'active',
+            },
             title: result.title,
         });
     } catch (err) {
@@ -173,7 +179,7 @@ interface ResultRowProps {
     result: WebSearchResult;
 }
 
-const ResultRow = ({ result, isPlaying, onPlay }: ResultRowProps) => {
+export const ResultRow = ({ isPlaying, onPlay, result }: ResultRowProps) => {
     const download = useWebSearchDownloadStore((s) => s.downloads[result.id]);
     const setDownload = useWebSearchDownloadStore((s) => s.setDownload);
     const downloadState = download?.state ?? { status: 'idle' };
@@ -233,6 +239,13 @@ const ResultRow = ({ result, isPlaying, onPlay }: ResultRowProps) => {
                 </div>
                 {result.preview_url && (
                     <button
+                        onClick={() => onPlay(result.id, result.preview_url!)}
+                        onMouseEnter={(e) => {
+                            if (!isPlaying) e.currentTarget.style.opacity = '1';
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!isPlaying) e.currentTarget.style.opacity = '0';
+                        }}
                         style={{
                             alignItems: 'center',
                             background: isPlaying
@@ -253,13 +266,6 @@ const ResultRow = ({ result, isPlaying, onPlay }: ResultRowProps) => {
                             transition: 'opacity 0.15s',
                             width: '100%',
                         }}
-                        onMouseEnter={(e) => {
-                            if (!isPlaying) e.currentTarget.style.opacity = '1';
-                        }}
-                        onMouseLeave={(e) => {
-                            if (!isPlaying) e.currentTarget.style.opacity = '0';
-                        }}
-                        onClick={() => onPlay(result.id, result.preview_url!)}
                     >
                         {isPlaying ? <RiPauseFill size={20} /> : <RiPlayFill size={20} />}
                     </button>
@@ -303,9 +309,9 @@ const ResultRow = ({ result, isPlaying, onPlay }: ResultRowProps) => {
                     (downloadState.status === 'done' && downloadState.alreadyExisted)) && (
                     <Button
                         leftSection={<RiDownload2Line />}
+                        onClick={handleDownload}
                         size="xs"
                         variant="default"
-                        onClick={handleDownload}
                     >
                         Download
                     </Button>
@@ -343,7 +349,7 @@ const ResultRow = ({ result, isPlaying, onPlay }: ResultRowProps) => {
                                 {downloadState.message}
                             </Text>
                         </Group>
-                        <Button size="xs" variant="default" onClick={handleDownload}>
+                        <Button onClick={handleDownload} size="xs" variant="default">
                             Retry
                         </Button>
                     </Stack>
@@ -360,13 +366,13 @@ interface AlbumRowProps {
     isExpanded: boolean;
     onPlay: (id: string, previewUrl: string) => void;
     onToggle: (albumId: number) => void;
-    playingId: string | null;
+    playingId: null | string;
 }
 
-const AlbumRow = ({ album, isExpanded, onToggle, onPlay, playingId }: AlbumRowProps) => {
+export const AlbumRow = ({ album, isExpanded, onPlay, onToggle, playingId }: AlbumRowProps) => {
     const [tracks, setTracks] = useState<WebSearchResult[]>([]);
     const [isLoadingTracks, setIsLoadingTracks] = useState(false);
-    const [tracksError, setTracksError] = useState<string | null>(null);
+    const [tracksError, setTracksError] = useState<null | string>(null);
     const [isDownloadingAll, setIsDownloadingAll] = useState(false);
     const setDownload = useWebSearchDownloadStore((s) => s.setDownload);
     // Ref to avoid stale closure in handleDownloadAll without re-creating loadTracks
@@ -394,7 +400,7 @@ const AlbumRow = ({ album, isExpanded, onToggle, onPlay, playingId }: AlbumRowPr
         } finally {
             setIsLoadingTracks(false);
         }
-    }, [album.deezer_id]);
+    }, [album.deezer_id, album.source]);
 
     const handleToggle = useCallback(async () => {
         onToggle(album.deezer_id);
@@ -454,18 +460,26 @@ const AlbumRow = ({ album, isExpanded, onToggle, onPlay, playingId }: AlbumRowPr
                 <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
                     <Text
                         fw={600}
-                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                        }}
                     >
                         {album.title}
                     </Text>
                     <Text
                         isMuted
                         size="xs"
-                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                        }}
                     >
                         {album.artist}
                         {album.year ? ` • ${album.year}` : ''}
-                        {` • ${album.track_count} tracks`}
+                        {album.track_count ? ` • ${album.track_count} tracks` : ''}
                     </Text>
                 </Stack>
 
@@ -474,19 +488,23 @@ const AlbumRow = ({ album, isExpanded, onToggle, onPlay, playingId }: AlbumRowPr
                     <Button
                         leftSection={<RiDownloadCloud2Line size={14} />}
                         loading={isDownloadingAll}
+                        onClick={handleDownloadAll}
                         size="xs"
                         variant="default"
-                        onClick={handleDownloadAll}
                     >
                         Download All
                     </Button>
                     <Button
+                        onClick={handleToggle}
                         rightSection={
-                            isExpanded ? <RiArrowUpSLine size={16} /> : <RiArrowDownSLine size={16} />
+                            isExpanded ? (
+                                <RiArrowUpSLine size={16} />
+                            ) : (
+                                <RiArrowDownSLine size={16} />
+                            )
                         }
                         size="xs"
                         variant="subtle"
-                        onClick={handleToggle}
                     >
                         {isExpanded ? 'Collapse' : 'View tracks'}
                     </Button>
@@ -520,10 +538,10 @@ const AlbumRow = ({ album, isExpanded, onToggle, onPlay, playingId }: AlbumRowPr
                         !tracksError &&
                         tracks.map((track) => (
                             <ResultRow
-                                key={track.id}
                                 isPlaying={playingId === track.id}
-                                result={track}
+                                key={track.id}
                                 onPlay={onPlay}
+                                result={track}
                             />
                         ))}
                 </div>
@@ -541,11 +559,10 @@ export const WebSearchContent = () => {
     const [allResults, setAllResults] = useState<WebSearchResult[]>([]);
     const [allAlbums, setAllAlbums] = useState<AlbumSearchResult[]>([]);
     const [hasMore, setHasMore] = useState(false);
-    const [playingId, setPlayingId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('tracks');
     const [expandedAlbums, setExpandedAlbums] = useState<Set<number>>(new Set());
     const [sortBy, setSortBy] = useState<'relevance' | 'year_asc' | 'year_desc'>('relevance');
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const { handlePlay, playingId } = useAudioPreview(query);
 
     const sortedResults = useMemo(() => {
         if (sortBy === 'relevance') return allResults;
@@ -607,32 +624,6 @@ export const WebSearchContent = () => {
         setHasMore(albumQuery.data.length >= SEARCH_LIMIT);
     }, [albumQuery.data, viewMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Stop preview when a new search fires
-    useEffect(() => {
-        audioRef.current?.pause();
-        audioRef.current = null;
-        setPlayingId(null);
-    }, [query]);
-
-    const handlePlay = useCallback(
-        (id: string, previewUrl: string) => {
-            if (playingId === id) {
-                audioRef.current?.pause();
-                audioRef.current = null;
-                setPlayingId(null);
-            } else {
-                audioRef.current?.pause();
-                const audio = new Audio(previewUrl);
-                audio.volume = 0.004;
-                audio.play();
-                audio.onended = () => setPlayingId(null);
-                audioRef.current = audio;
-                setPlayingId(id);
-            }
-        },
-        [playingId],
-    );
-
     const handleSearch = () => {
         const trimmed = inputValue.trim();
         if (!trimmed) return;
@@ -688,13 +679,13 @@ export const WebSearchContent = () => {
                 </Group>
                 <Group gap="sm">
                     <TextInput
+                        onChange={(e) => setInputValue(e.currentTarget.value)}
+                        onKeyDown={handleKeyDown}
                         placeholder="Search for a track, artist, album…"
                         style={{ flex: 1, maxWidth: 600 }}
                         value={inputValue}
-                        onChange={(e) => setInputValue(e.currentTarget.value)}
-                        onKeyDown={handleKeyDown}
                     />
-                    <Button loading={isInitialLoading} variant="filled" onClick={handleSearch}>
+                    <Button loading={isInitialLoading} onClick={handleSearch} variant="filled">
                         Search
                     </Button>
                     <SegmentedControl
@@ -702,9 +693,9 @@ export const WebSearchContent = () => {
                             { label: 'Tracks', value: 'tracks' },
                             { label: 'Albums', value: 'albums' },
                         ]}
+                        onChange={handleViewModeChange}
                         size="xs"
                         value={viewMode}
-                        onChange={handleViewModeChange}
                     />
                     <Select
                         checkIconPosition="right"
@@ -713,10 +704,10 @@ export const WebSearchContent = () => {
                             { label: 'Plus récent', value: 'year_desc' },
                             { label: 'Plus ancien', value: 'year_asc' },
                         ]}
+                        onChange={(v) => setSortBy((v ?? 'relevance') as typeof sortBy)}
                         size="xs"
                         style={{ minWidth: 130 }}
                         value={sortBy}
-                        onChange={(v) => setSortBy((v ?? 'relevance') as typeof sortBy)}
                     />
                 </Group>
             </div>
@@ -751,18 +742,18 @@ export const WebSearchContent = () => {
                     <Stack gap={0}>
                         {sortedResults.map((result) => (
                             <ResultRow
-                                key={result.id}
                                 isPlaying={playingId === result.id}
-                                result={result}
+                                key={result.id}
                                 onPlay={handlePlay}
+                                result={result}
                             />
                         ))}
                         {hasMore && (
                             <Center py="md">
                                 <Button
                                     loading={isFetching}
-                                    variant="default"
                                     onClick={handleLoadMore}
+                                    variant="default"
                                 >
                                     Load more
                                 </Button>
@@ -783,20 +774,20 @@ export const WebSearchContent = () => {
                     <Stack gap={0}>
                         {sortedAlbums.map((album) => (
                             <AlbumRow
-                                key={album.deezer_id}
                                 album={album}
                                 isExpanded={expandedAlbums.has(album.deezer_id)}
-                                playingId={playingId}
+                                key={album.deezer_id}
                                 onPlay={handlePlay}
                                 onToggle={handleToggleAlbum}
+                                playingId={playingId}
                             />
                         ))}
                         {hasMore && (
                             <Center py="md">
                                 <Button
                                     loading={isFetching}
-                                    variant="default"
                                     onClick={handleLoadMore}
+                                    variant="default"
                                 >
                                     Load more
                                 </Button>

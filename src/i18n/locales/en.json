@@ -642,6 +642,7 @@
             "home": "$t(common.home)",
             "radio": "$t(entity.radioStation, {\"count\": 2})",
             "myLibrary": "My Library",
+            "newReleases": "new releases",
             "nowPlaying": "Now Playing",
             "playlists": "$t(entity.playlist, {\"count\": 2})",
             "search": "$t(common.search)",

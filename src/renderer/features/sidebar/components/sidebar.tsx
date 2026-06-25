@@ -73,6 +73,7 @@ export const Sidebar = () => {
             Folders: t('page.sidebar.folders', { postProcess: 'titleCase' }),
             Genres: t('page.sidebar.genres', { postProcess: 'titleCase' }),
             Home: t('page.sidebar.home', { postProcess: 'titleCase' }),
+            'New Releases': t('page.sidebar.newReleases', { postProcess: 'titleCase' }),
             'Now Playing': t('page.sidebar.nowPlaying', { postProcess: 'titleCase' }),
             Playlists: t('page.sidebar.playlists', { postProcess: 'titleCase' }),
             Radio: t('page.sidebar.radio', { postProcess: 'titleCase' }),

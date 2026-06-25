@@ -1078,6 +1078,12 @@ export const sidebarItems: SidebarItemType[] = [
         label: i18n.t('page.sidebar.webSearch'),
         route: AppRoute.WEB_SEARCH,
     },
+    {
+        disabled: false,
+        id: 'New Releases',
+        label: i18n.t('page.sidebar.newReleases'),
+        route: AppRoute.NEW_RELEASES,
+    },
 ];
 
 const homeItems = Object.values(HomeItem).map((item) => ({

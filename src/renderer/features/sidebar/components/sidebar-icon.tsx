@@ -23,6 +23,8 @@ import {
     RiSearchLine,
     RiSettings2Fill,
     RiSettings2Line,
+    RiSparkling2Fill,
+    RiSparkling2Line,
     RiUserVoiceFill,
     RiUserVoiceLine,
 } from 'react-icons/ri';
@@ -65,6 +67,9 @@ export const SidebarIcon = ({ active, route, size }: SidebarIconProps) => {
             case AppRoute.LIBRARY_SONGS:
                 if (isActive) return <RiMusic2Fill size={size} />;
                 return <RiMusic2Line size={size} />;
+            case AppRoute.NEW_RELEASES:
+                if (isActive) return <RiSparkling2Fill size={size} />;
+                return <RiSparkling2Line size={size} />;
             case AppRoute.NOW_PLAYING:
                 if (isActive) return <RiPlayFill size={size} />;
                 return <RiPlayLine size={size} />;
@@ -77,12 +82,12 @@ export const SidebarIcon = ({ active, route, size }: SidebarIconProps) => {
             case AppRoute.SETTINGS:
                 if (isActive) return <RiSettings2Fill size={size} />;
                 return <RiSettings2Line size={size} />;
-            case generatePath(AppRoute.SEARCH, { itemType: LibraryItem.SONG }):
-                if (isActive) return <RiSearchFill size={size} />;
-                return <RiSearchLine size={size} />;
             case AppRoute.WEB_SEARCH:
                 if (isActive) return <RiEarthFill size={size} />;
                 return <RiEarthLine size={size} />;
+            case generatePath(AppRoute.SEARCH, { itemType: LibraryItem.SONG }):
+                if (isActive) return <RiSearchFill size={size} />;
+                return <RiSearchLine size={size} />;
             default:
                 if (route.startsWith(AppRoute.FAVORITES)) {
                     if (isActive) return <RiHeartFill size={size} />;

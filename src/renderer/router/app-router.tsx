@@ -85,6 +85,14 @@ const WebSearchRoute = lazy(
     () => import('/@/renderer/features/web-search/routes/web-search-route'),
 );
 
+const NewReleasesRoute = lazy(
+    () => import('/@/renderer/features/new-releases/routes/new-releases-route'),
+);
+
+const NewReleasesGenreRoute = lazy(
+    () => import('/@/renderer/features/new-releases/routes/new-releases-genre-route'),
+);
+
 const FavoritesRoute = lazy(() => import('/@/renderer/features/favorites/routes/favorites-route'));
 
 const SettingsRoute = lazy(() => import('/@/renderer/features/settings/routes/settings-route'));
@@ -315,6 +323,13 @@ export const AppRouter = () => {
                                             element={<WebSearchRoute />}
                                             path={AppRoute.WEB_SEARCH}
                                         />
+                                        <Route path={AppRoute.NEW_RELEASES}>
+                                            <Route element={<NewReleasesRoute />} index />
+                                            <Route
+                                                element={<NewReleasesGenreRoute />}
+                                                path={AppRoute.NEW_RELEASES_GENRE}
+                                            />
+                                        </Route>
                                         <Route element={<InvalidRoute />} path="*" />
                                     </Route>
                                 </Route>
