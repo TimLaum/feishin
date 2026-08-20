@@ -7,6 +7,7 @@ import { ContextMenuController } from '/@/renderer/features/context-menu/context
 import { OfflineDownloadManager } from '/@/renderer/features/offline/components/offline-download-manager';
 import { OfflineAutoSkipHook } from '/@/renderer/features/offline/hooks/use-offline-auto-skip';
 import { DownloadManager } from '/@/renderer/features/web-search/components/download-manager';
+import { PlaylistImportManager } from '/@/renderer/features/web-search/components/playlist-import-manager';
 import { SimilarDrawer } from '/@/renderer/features/web-search/components/similar-drawer';
 import { MainContent } from '/@/renderer/layouts/default-layout/main-content';
 import { PlayerBar } from '/@/renderer/layouts/default-layout/player-bar';
@@ -44,6 +45,7 @@ export const DefaultLayout = ({ shell }: DefaultLayoutProps) => {
             </div>
             <ContextMenuController.Root />
             <DownloadManager />
+            <PlaylistImportManager />
             <SimilarDrawer />
             <OfflineDownloadManager />
             <OfflineAutoSkipHook />

@@ -20,6 +20,7 @@ import {
     useWebSearchDownloadStore,
 } from '../store/web-search-download-store';
 import { useWebSearchUIStore } from '../store/web-search-ui-store';
+import { PlaylistImportPanel } from './playlist-import-panel';
 
 import { Badge } from '/@/shared/components/badge/badge';
 import { Button } from '/@/shared/components/button/button';
@@ -62,7 +63,7 @@ interface DownloadResponse {
     status: string;
 }
 
-type ViewMode = 'albums' | 'tracks';
+type ViewMode = 'albums' | 'playlists' | 'tracks';
 
 // ── API helpers ────────────────────────────────────────────────────────────
 
@@ -713,6 +714,8 @@ export const WebSearchContent = () => {
 
     const isInitialLoading = isFetching && offset === 0;
     const resultCount = viewMode === 'tracks' ? sortedResults.length : sortedAlbums.length;
+    // L'onglet « Playlists » n'est pas une recherche : il a son propre formulaire.
+    const isSearchMode = viewMode !== 'playlists';
 
     return (
         <Stack gap={0} style={{ height: '100%' }}>
@@ -727,60 +730,72 @@ export const WebSearchContent = () => {
                     <TextTitle order={3}>Web Search</TextTitle>
                 </Group>
                 <Group gap="sm">
-                    <TextInput
-                        onChange={(e) => setInputValue(e.currentTarget.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Search for a track, artist, album…"
-                        style={{ flex: 1, maxWidth: 600 }}
-                        value={inputValue}
-                    />
-                    <Button loading={isInitialLoading} onClick={handleSearch} variant="filled">
-                        Search
-                    </Button>
+                    {isSearchMode && (
+                        <>
+                            <TextInput
+                                onChange={(e) => setInputValue(e.currentTarget.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Search for a track, artist, album…"
+                                style={{ flex: 1, maxWidth: 600 }}
+                                value={inputValue}
+                            />
+                            <Button
+                                loading={isInitialLoading}
+                                onClick={handleSearch}
+                                variant="filled"
+                            >
+                                Search
+                            </Button>
+                        </>
+                    )}
                     <SegmentedControl
                         data={[
                             { label: 'Tracks', value: 'tracks' },
                             { label: 'Albums', value: 'albums' },
+                            { label: 'Playlists', value: 'playlists' },
                         ]}
                         onChange={handleViewModeChange}
                         size="xs"
                         value={viewMode}
                     />
-                    <Select
-                        checkIconPosition="right"
-                        data={[
-                            { label: 'Pertinence', value: 'relevance' },
-                            { label: 'Plus récent', value: 'year_desc' },
-                            { label: 'Plus ancien', value: 'year_asc' },
-                        ]}
-                        onChange={(v) => setSortBy((v ?? 'relevance') as typeof sortBy)}
-                        size="xs"
-                        style={{ minWidth: 130 }}
-                        value={sortBy}
-                    />
+                    {isSearchMode && (
+                        <Select
+                            checkIconPosition="right"
+                            data={[
+                                { label: 'Pertinence', value: 'relevance' },
+                                { label: 'Plus récent', value: 'year_desc' },
+                                { label: 'Plus ancien', value: 'year_asc' },
+                            ]}
+                            onChange={(v) => setSortBy((v ?? 'relevance') as typeof sortBy)}
+                            size="xs"
+                            style={{ minWidth: 130 }}
+                            value={sortBy}
+                        />
+                    )}
                 </Group>
             </div>
 
             {/* Results */}
             <ScrollArea style={{ flex: 1 }}>
-                {!query && (
+                {!isSearchMode && <PlaylistImportPanel />}
+                {isSearchMode && !query && (
                     <Center h={200}>
                         <Text isMuted>Enter a search query to find {viewMode}</Text>
                     </Center>
                 )}
-                {query && isInitialLoading && (
+                {isSearchMode && query && isInitialLoading && (
                     <Center h={200}>
                         <Text isMuted>Searching…</Text>
                     </Center>
                 )}
-                {isError && (
+                {isSearchMode && isError && (
                     <Center h={200}>
                         <Text style={{ color: 'var(--mantine-color-red-6)' }}>
                             {error instanceof Error ? error.message : 'Search failed'}
                         </Text>
                     </Center>
                 )}
-                {!isInitialLoading && resultCount === 0 && query && !isError && (
+                {isSearchMode && !isInitialLoading && resultCount === 0 && query && !isError && (
                     <Center h={200}>
                         <Text isMuted>No results found</Text>
                     </Center>
