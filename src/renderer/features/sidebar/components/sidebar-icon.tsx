@@ -1,6 +1,8 @@
 import {
     RiAlbumFill,
     RiAlbumLine,
+    RiDownloadCloud2Fill,
+    RiDownloadCloud2Line,
     RiEarthFill,
     RiEarthLine,
     RiFlag2Fill,
@@ -46,6 +48,9 @@ export const SidebarIcon = ({ active, route, size }: SidebarIconProps) => {
     const isActive = active !== undefined ? active : location.pathname === route;
     const renderIcon = () => {
         switch (route) {
+            case AppRoute.DOWNLOADS:
+                if (isActive) return <RiDownloadCloud2Fill size={size} />;
+                return <RiDownloadCloud2Line size={size} />;
             case AppRoute.HOME:
                 if (isActive) return <RiHome6Fill size={size} />;
                 return <RiHome6Line size={size} />;

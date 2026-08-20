@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import { AddToPlaylistAction } from '/@/renderer/features/context-menu/actions/add-to-playlist-action';
 import { DownloadAction } from '/@/renderer/features/context-menu/actions/download-action';
+import { DownloadOfflineAction } from '/@/renderer/features/context-menu/actions/download-offline-action';
 import { GetInfoAction } from '/@/renderer/features/context-menu/actions/get-info-action';
 import { GoToAction } from '/@/renderer/features/context-menu/actions/go-to-action';
 import { MoveQueueItemsAction } from '/@/renderer/features/context-menu/actions/move-queue-items-action';
@@ -12,6 +13,7 @@ import { SetRatingAction } from '/@/renderer/features/context-menu/actions/set-r
 import { ShareAction } from '/@/renderer/features/context-menu/actions/share-action';
 import { ShowInFileExplorerAction } from '/@/renderer/features/context-menu/actions/show-in-file-explorer-action';
 import { ShuffleItemsAction } from '/@/renderer/features/context-menu/actions/shuffle-items-action';
+import { SimilarAction } from '/@/renderer/features/context-menu/actions/similar-action';
 import { ContextMenuPreview } from '/@/renderer/features/context-menu/components/context-menu-preview';
 import { ContextMenu } from '/@/shared/components/context-menu/context-menu';
 import { LibraryItem, QueueSong } from '/@/shared/types/domain-types';
@@ -36,6 +38,7 @@ export const QueueContextMenu = ({ items }: QueueContextMenuProps) => {
             <ShuffleItemsAction items={items} />
             <ContextMenu.Divider />
             <PlayTrackRadioAction disabled={items.length > 1} skipFirstSong song={items[0]} />
+            <SimilarAction song={items.length === 1 ? items[0] : undefined} />
             <ContextMenu.Divider />
             <AddToPlaylistAction items={ids} itemType={LibraryItem.SONG} />
             <ContextMenu.Divider />
@@ -43,6 +46,7 @@ export const QueueContextMenu = ({ items }: QueueContextMenuProps) => {
             <SetRatingAction ids={ids} itemType={LibraryItem.SONG} />
             <ContextMenu.Divider />
             <DownloadAction ids={ids} />
+            <DownloadOfflineAction ids={ids} itemType={LibraryItem.SONG} songs={items} />
             <ShareAction ids={ids} itemType={LibraryItem.SONG} />
             <ContextMenu.Divider />
             <GoToAction items={items} />

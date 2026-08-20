@@ -10,6 +10,7 @@ import {
     RiErrorWarningLine,
     RiPauseFill,
     RiPlayFill,
+    RiSparkling2Line,
 } from 'react-icons/ri';
 
 import { useAudioPreview } from '../hooks/use-audio-preview';
@@ -18,6 +19,7 @@ import {
     NAS_API_BASE,
     useWebSearchDownloadStore,
 } from '../store/web-search-download-store';
+import { useWebSearchUIStore } from '../store/web-search-ui-store';
 
 import { Badge } from '/@/shared/components/badge/badge';
 import { Button } from '/@/shared/components/button/button';
@@ -182,7 +184,16 @@ interface ResultRowProps {
 export const ResultRow = ({ isPlaying, onPlay, result }: ResultRowProps) => {
     const download = useWebSearchDownloadStore((s) => s.downloads[result.id]);
     const setDownload = useWebSearchDownloadStore((s) => s.setDownload);
+    const openSimilar = useWebSearchUIStore((s) => s.openSimilar);
     const downloadState = download?.state ?? { status: 'idle' };
+
+    const handleSimilar = useCallback(() => {
+        openSimilar({
+            artist: result.artist,
+            deezerId: result.deezer_id ?? null,
+            title: result.title,
+        });
+    }, [openSimilar, result.artist, result.deezer_id, result.title]);
 
     const { data: libraryCheck, refetch: refetchLibraryCheck } = useQuery({
         queryFn: () => checkInLibrary(result.artist, result.title),
@@ -302,6 +313,26 @@ export const ResultRow = ({ isPlaying, onPlay, result }: ResultRowProps) => {
                     In library
                 </Badge>
             )}
+
+            {/* Find similar */}
+            <button
+                onClick={handleSimilar}
+                style={{
+                    alignItems: 'center',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--theme-colors-foreground-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexShrink: 0,
+                    justifyContent: 'center',
+                    padding: 4,
+                }}
+                title="Sons similaires"
+                type="button"
+            >
+                <RiSparkling2Line size={18} />
+            </button>
 
             {/* Download area */}
             <div style={{ flexShrink: 0, minWidth: 130, textAlign: 'right' }}>
@@ -563,6 +594,24 @@ export const WebSearchContent = () => {
     const [expandedAlbums, setExpandedAlbums] = useState<Set<number>>(new Set());
     const [sortBy, setSortBy] = useState<'relevance' | 'year_asc' | 'year_desc'>('relevance');
     const { handlePlay, playingId } = useAudioPreview(query);
+    const pendingQuery = useWebSearchUIStore((s) => s.pendingQuery);
+    const clearPendingQuery = useWebSearchUIStore((s) => s.clearPendingQuery);
+
+    // Requête poussée depuis le drawer de similaires (clic sur un artiste)
+    useEffect(() => {
+        if (!pendingQuery) return;
+        const trimmed = pendingQuery.trim();
+        clearPendingQuery();
+        if (!trimmed) return;
+        setInputValue(trimmed);
+        setAllResults([]);
+        setAllAlbums([]);
+        setHasMore(false);
+        setExpandedAlbums(new Set());
+        setOffset(0);
+        setViewMode('tracks');
+        setQuery(trimmed);
+    }, [pendingQuery, clearPendingQuery]);
 
     const sortedResults = useMemo(() => {
         if (sortBy === 'relevance') return allResults;

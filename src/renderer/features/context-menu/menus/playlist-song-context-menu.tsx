@@ -1,17 +1,19 @@
 import { useMemo } from 'react';
 
 import { AddToPlaylistAction } from '/@/renderer/features/context-menu/actions/add-to-playlist-action';
+import { DeleteFromNasAction } from '/@/renderer/features/context-menu/actions/delete-from-nas-action';
 import { DownloadAction } from '/@/renderer/features/context-menu/actions/download-action';
+import { DownloadOfflineAction } from '/@/renderer/features/context-menu/actions/download-offline-action';
 import { GetInfoAction } from '/@/renderer/features/context-menu/actions/get-info-action';
 import { GoToAction } from '/@/renderer/features/context-menu/actions/go-to-action';
 import { PlayAction } from '/@/renderer/features/context-menu/actions/play-action';
 import { PlayTrackRadioAction } from '/@/renderer/features/context-menu/actions/play-track-radio-action';
-import { DeleteFromNasAction } from '/@/renderer/features/context-menu/actions/delete-from-nas-action';
 import { RemoveFromPlaylistAction } from '/@/renderer/features/context-menu/actions/remove-from-playlist-action';
 import { SetFavoriteAction } from '/@/renderer/features/context-menu/actions/set-favorite-action';
 import { SetRatingAction } from '/@/renderer/features/context-menu/actions/set-rating-action';
 import { ShareAction } from '/@/renderer/features/context-menu/actions/share-action';
 import { ShowInFileExplorerAction } from '/@/renderer/features/context-menu/actions/show-in-file-explorer-action';
+import { SimilarAction } from '/@/renderer/features/context-menu/actions/similar-action';
 import { ContextMenuPreview } from '/@/renderer/features/context-menu/components/context-menu-preview';
 import { ContextMenu } from '/@/shared/components/context-menu/context-menu';
 import { LibraryItem, Song } from '/@/shared/types/domain-types';
@@ -33,6 +35,7 @@ export const PlaylistSongContextMenu = ({ items, type }: PlaylistSongContextMenu
         >
             <PlayAction ids={ids} itemType={type} songs={items} />
             <PlayTrackRadioAction disabled={items.length > 1} song={items[0]} />
+            <SimilarAction song={items.length === 1 ? items[0] : undefined} />
             <ContextMenu.Divider />
             <RemoveFromPlaylistAction items={items} />
             <ContextMenu.Divider />
@@ -42,6 +45,7 @@ export const PlaylistSongContextMenu = ({ items, type }: PlaylistSongContextMenu
             <SetRatingAction ids={ids} itemType={type} />
             <ContextMenu.Divider />
             <DownloadAction ids={ids} />
+            <DownloadOfflineAction ids={ids} itemType={LibraryItem.SONG} songs={items} />
             <ShareAction ids={ids} itemType={type} />
             <ContextMenu.Divider />
             <GoToAction items={items} />

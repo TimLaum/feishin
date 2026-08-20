@@ -137,7 +137,12 @@ import {
 } from 'react-icons/lu';
 import { MdOutlineVisibility, MdOutlineVisibilityOff } from 'react-icons/md';
 import { PiMouseLeftClickFill, PiMouseRightClickFill } from 'react-icons/pi';
-import { RiPlayListAddLine, RiRepeat2Line, RiRepeatOneLine } from 'react-icons/ri';
+import {
+    RiPlayListAddLine,
+    RiRepeat2Line,
+    RiRepeatOneLine,
+    RiSparkling2Line,
+} from 'react-icons/ri';
 
 import styles from './icon.module.css';
 import lastfmLogoIcon from './lastfm_logo_icon.png';
@@ -344,6 +349,7 @@ export const AppIcon = {
     share: LuShare2,
     signIn: LuLogIn,
     signOut: LuLogOut,
+    similar: RiSparkling2Line,
     sleepTimer: LuTimer,
     sleepTimerOff: LuTimerOff,
     sort: LuArrowUpDown,

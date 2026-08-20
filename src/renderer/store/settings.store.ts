@@ -1084,6 +1084,12 @@ export const sidebarItems: SidebarItemType[] = [
         label: i18n.t('page.sidebar.newReleases'),
         route: AppRoute.NEW_RELEASES,
     },
+    {
+        disabled: false,
+        id: 'Downloads',
+        label: i18n.t('page.sidebar.downloads'),
+        route: AppRoute.DOWNLOADS,
+    },
 ];
 
 const homeItems = Object.values(HomeItem).map((item) => ({

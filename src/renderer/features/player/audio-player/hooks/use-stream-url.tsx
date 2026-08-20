@@ -2,8 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 
 import { api } from '/@/renderer/api';
-import { TranscodingConfig } from '/@/renderer/store';
+import {
+    getOfflinePlaybackUrl,
+    offlineKey,
+    useOfflineStoreBase,
+} from '/@/renderer/features/offline/store/offline-store';
+import { TranscodingConfig, usePlaybackType } from '/@/renderer/store';
 import { QueueSong } from '/@/shared/types/domain-types';
+import { PlayerType } from '/@/shared/types/types';
 
 export function useSongUrl(
     song: QueueSong | undefined,
@@ -15,8 +21,28 @@ export function useSongUrl(
         song?._serverId && current && prior.current[0] === song._uniqueId && prior.current[1],
     );
 
+    // Morceau téléchargé pour l'écoute hors ligne : lecture locale.
+    // Sélecteurs sur primitives : pas de re-render sur les ticks de progression.
+    const playbackType = usePlaybackType();
+    const offlineRelPath = useOfflineStoreBase((s) => {
+        if (!song?._serverId) return undefined;
+        const entry = s.entries[offlineKey(song._serverId, song.id)];
+        return entry?.status === 'done' ? (entry.relPath ?? undefined) : undefined;
+    });
+    const offlineFilePath = useOfflineStoreBase((s) => {
+        if (!song?._serverId) return undefined;
+        const entry = s.entries[offlineKey(song._serverId, song.id)];
+        return entry?.status === 'done' ? (entry.filePath ?? undefined) : undefined;
+    });
+    const offlinePlaybackUrl =
+        playbackType === PlayerType.LOCAL
+            ? offlineFilePath
+            : offlineRelPath
+              ? `feishin://offline/${encodeURI(offlineRelPath)}`
+              : undefined;
+
     const { data: queryStreamUrl } = useQuery({
-        enabled: Boolean(song?._serverId) && !shouldReusePrior,
+        enabled: Boolean(song?._serverId) && !shouldReusePrior && !offlinePlaybackUrl,
         queryFn: () =>
             api.controller.getStreamUrl({
                 apiClientProps: { serverId: song!._serverId },
@@ -44,13 +70,19 @@ export function useSongUrl(
             return;
         }
 
-        if (!queryStreamUrl) {
+        const resolvedUrl = offlinePlaybackUrl ?? queryStreamUrl;
+        if (!resolvedUrl) {
             return;
         }
 
-        // Save resolved URL to avoid restarting current track on transcode setting changes.
-        prior.current = [song._uniqueId, queryStreamUrl];
-    }, [song?._serverId, song?._uniqueId, queryStreamUrl]);
+        // Save resolved URL to avoid restarting current track on transcode setting changes,
+        // or when its offline download completes mid-play.
+        if (prior.current[0] === song._uniqueId && prior.current[1]) {
+            return;
+        }
+
+        prior.current = [song._uniqueId, resolvedUrl];
+    }, [song?._serverId, song?._uniqueId, queryStreamUrl, offlinePlaybackUrl]);
 
     useEffect(() => {
         if (!song?._serverId) {
@@ -58,7 +90,11 @@ export function useSongUrl(
         }
     }, [song?._serverId]);
 
-    return shouldReusePrior ? prior.current[1] : queryStreamUrl;
+    if (shouldReusePrior) {
+        return prior.current[1];
+    }
+
+    return offlinePlaybackUrl ?? queryStreamUrl;
 }
 
 export const getSongUrl = async (
@@ -66,6 +102,12 @@ export const getSongUrl = async (
     transcode: Partial<TranscodingConfig>,
     skipAutoTranscode?: boolean,
 ) => {
+    // Morceau téléchargé pour l'écoute hors ligne : lecture locale
+    const offlineUrl = getOfflinePlaybackUrl(song);
+    if (offlineUrl) {
+        return offlineUrl;
+    }
+
     const url = await api.controller.getStreamUrl({
         apiClientProps: { serverId: song._serverId },
         query: {

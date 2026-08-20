@@ -10,6 +10,7 @@ import { usePlayer } from '/@/renderer/features/player/context/player-context';
 import { useSetRating } from '/@/renderer/features/shared/hooks/use-set-rating';
 import { useCreateFavorite } from '/@/renderer/features/shared/mutations/create-favorite-mutation';
 import { useDeleteFavorite } from '/@/renderer/features/shared/mutations/delete-favorite-mutation';
+import { useWebSearchUIStore } from '/@/renderer/features/web-search/store/web-search-ui-store';
 import { useHotkeys } from '/@/renderer/hooks/use-hotkeys';
 import {
     AUTO_DJ_MODE,
@@ -87,6 +88,7 @@ export const RightControls = () => {
                 <SleepTimerButton />
                 <PlayerConfig />
                 <LyricsButton />
+                <SimilarButton />
                 <FavoriteButton />
                 <QueueButton />
                 <VolumeButton />
@@ -306,6 +308,37 @@ const QueueButton = () => {
                 handleToggleQueue();
             }}
             opened={popoverOpened}
+        />
+    );
+};
+
+const SimilarButton = () => {
+    const currentSong = usePlayerSong();
+    const openSimilar = useWebSearchUIStore((s) => s.openSimilar);
+
+    const isSongDefined = Boolean(currentSong?.id);
+
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        if (!currentSong) return;
+        openSimilar({
+            artist: currentSong.artistName || currentSong.artists?.[0]?.name || '',
+            title: currentSong.name,
+        });
+    };
+
+    return (
+        <ActionIcon
+            disabled={!isSongDefined}
+            icon="similar"
+            iconProps={{ size: 'lg' }}
+            onClick={handleClick}
+            size="sm"
+            tooltip={{
+                label: t('player.similarSongs'),
+                openDelay: 0,
+            }}
+            variant="subtle"
         />
     );
 };

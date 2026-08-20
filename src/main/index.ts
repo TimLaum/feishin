@@ -28,6 +28,10 @@ import path, { join } from 'path';
 import semver from 'semver';
 
 import packageJson from '../../package.json';
+import {
+    handleOfflineProtocolRequest,
+    OFFLINE_PROTOCOL_PREFIX,
+} from './features/core/offline-downloads';
 import { disableMediaKeys, enableMediaKeys } from './features/core/player/media-keys';
 import { shutdownServer } from './features/core/remote';
 import { store } from './features/core/settings';
@@ -253,7 +257,10 @@ function createAlphaUpdaterInstance(): AppImageUpdater | MacUpdater | NsisUpdate
 }
 
 protocol.registerSchemesAsPrivileged([
-    { privileges: { bypassCSP: true, corsEnabled: true }, scheme: 'feishin' },
+    {
+        privileges: { bypassCSP: true, corsEnabled: true, stream: true, supportFetchAPI: true },
+        scheme: 'feishin',
+    },
 ]);
 
 process.on('uncaughtException', (error: any) => {
@@ -1038,7 +1045,12 @@ if (!singleInstance) {
 
     app.whenReady()
         .then(() => {
-            protocol.handle('feishin', async () => {
+            protocol.handle('feishin', async (request) => {
+                // Fichiers audio/pochettes téléchargés pour l'écoute hors ligne
+                if (request.url.startsWith(OFFLINE_PROTOCOL_PREFIX)) {
+                    return handleOfflineProtocolRequest(request);
+                }
+
                 const filePath = store.get('local_font_path');
                 if (typeof filePath !== 'string') {
                     getMainWindow()?.webContents.send('custom-font-error', filePath);
@@ -1088,7 +1100,7 @@ if (!singleInstance) {
                     responseHeaders: {
                         ...details.responseHeaders,
                         'Content-Security-Policy': [
-                            "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://umami.jeffvli.org; style-src 'self' 'unsafe-inline'; media-src 'self' http: https: data: blob:; img-src 'self' http: https: data: blob:; connect-src 'self' http: https: ws: wss:; default-src 'self';",
+                            "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://umami.jeffvli.org; style-src 'self' 'unsafe-inline'; media-src 'self' feishin: http: https: data: blob:; img-src 'self' feishin: http: https: data: blob:; connect-src 'self' feishin: http: https: ws: wss:; default-src 'self';",
                         ],
                     },
                 });
