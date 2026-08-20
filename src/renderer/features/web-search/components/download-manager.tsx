@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 
-import { toast } from '/@/shared/components/toast/toast';
-
 import {
     DownloadStatusResponse,
     NAS_API_BASE,
     useWebSearchDownloadStore,
 } from '../store/web-search-download-store';
+
+import { toast } from '/@/shared/components/toast/toast';
 
 const STATUS_LABEL: Record<string, string> = {
     already_exists: 'Already exists',
@@ -40,7 +40,7 @@ export const DownloadManager = () => {
         // Démarrer le polling pour les nouveaux downloads actifs
         Object.entries(downloads).forEach(([resultId, download]) => {
             if (download.state.status === 'active' && !intervalsRef.current[resultId]) {
-                const { downloadId, title, artist } = download;
+                const { artist, downloadId, title } = download;
 
                 intervalsRef.current[resultId] = setInterval(async () => {
                     try {
@@ -109,10 +109,12 @@ export const DownloadManager = () => {
         });
     }, [downloads, updateDownloadState]);
 
-    // Cleanup au démontage
+    // Cleanup au démontage. L'objet n'est jamais réassigné, seulement muté,
+    // donc la référence capturée ici reste celle des intervals vivants.
     useEffect(() => {
+        const intervals = intervalsRef.current;
         return () => {
-            Object.values(intervalsRef.current).forEach(clearInterval);
+            Object.values(intervals).forEach(clearInterval);
         };
     }, []);
 

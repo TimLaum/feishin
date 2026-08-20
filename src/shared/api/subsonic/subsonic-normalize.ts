@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 import { coerceYear, parsePartialIsoDate } from '/@/shared/api/partial-iso-date';
 import { ssType } from '/@/shared/api/subsonic/subsonic-types';
-import { replacePathPrefix } from '/@/shared/api/utils';
 import {
     Album,
     AlbumArtist,
@@ -159,12 +158,20 @@ const subsonicReleaseFields = (item: {
 
     return { releaseDate: null, releaseYear: null };
 };
+const subsonicTrackYearField = (item: {
+    year?: number;
+}): { date: null | string; year: null | number } => {
+    const y = coerceYear(item.year);
+    if (y > 0) {
+        return { date: String(y), year: y };
+    }
+
+    return { date: null, year: null };
+};
 
 const normalizeSong = (
     item: z.infer<typeof ssType._response.song>,
     server?: null | ServerListItemWithCredential,
-    pathReplace?: string,
-    pathReplaceWith?: string,
     playlistIndex?: number,
     discTitleMap?: Map<number, string>,
 ): Song => {
@@ -176,6 +183,7 @@ const normalizeSong = (
             : item.artist || '';
 
     const { releaseDate, releaseYear } = subsonicReleaseFields(item);
+    const { date, year } = subsonicTrackYearField(item);
 
     return {
         _itemType: LibraryItem.SONG,
@@ -195,6 +203,7 @@ const normalizeSong = (
         compilation: null,
         container: item.contentType.startsWith('audio/') ? item.contentType.split('/')[1] : null,
         createdAt: item.created,
+        date,
         discNumber: item.discNumber || 1,
         discSubtitle: discTitleMap?.get(item.discNumber ?? 1) ?? null,
         duration: item.duration ? item.duration * 1000 : 0,
@@ -217,11 +226,12 @@ const normalizeSong = (
         imageUrl: null,
         lastPlayedAt: null,
         lyrics: null,
+        mbzAlbumId: null,
         mbzRecordingId: item.musicBrainzId || null,
         mbzTrackId: null,
         name: item.title,
         participants,
-        path: replacePathPrefix(item.path || '', pathReplace, pathReplaceWith),
+        path: item.path || '',
         peak:
             item.replayGain && (item.replayGain.albumPeak || item.replayGain.trackPeak)
                 ? {
@@ -242,20 +252,21 @@ const normalizeSong = (
         updatedAt: '',
         userFavorite: Boolean(item.starred) || false,
         userRating: item.userRating || null,
+        year,
     };
 };
 
 const normalizeAlbumArtist = (
     item:
         | (z.infer<typeof ssType._response.albumArtist> & {
-              similarArtists?: z.infer<
-                  typeof ssType._response.artistInfo
-              >['artistInfo']['similarArtist'];
+              similarArtists?: NonNullable<
+                  z.infer<typeof ssType._response.artistInfo2>['artistInfo2']
+              >['similarArtist'];
           })
         | (z.infer<typeof ssType._response.artistListEntry> & {
-              similarArtists?: z.infer<
-                  typeof ssType._response.artistInfo
-              >['artistInfo']['similarArtist'];
+              similarArtists?: NonNullable<
+                  z.infer<typeof ssType._response.artistInfo2>['artistInfo2']
+              >['similarArtist'];
           }),
     server?: null | ServerListItemWithCredential,
 ): AlbumArtist => {
@@ -276,8 +287,8 @@ const normalizeAlbumArtist = (
         playCount: null,
         similarArtists:
             item.similarArtists?.map((artist) => ({
-                id: artist.id,
-                imageId: artist.coverArt ?? artist.id,
+                id: String(artist.id),
+                imageId: artist.coverArt ?? String(artist.id),
                 imageUrl: null,
                 name: artist.name,
                 userFavorite: Boolean(artist.starred) || false,
@@ -305,8 +316,6 @@ const getReleaseType = (
 const normalizeAlbum = (
     item: z.infer<typeof ssType._response.album> | z.infer<typeof ssType._response.albumListEntry>,
     server?: null | ServerListItemWithCredential,
-    pathReplace?: string,
-    pathReplaceWith?: string,
 ): Album => {
     const discTitleMap = new Map<number, string>();
 
@@ -354,10 +363,11 @@ const normalizeAlbum = (
         songCount: item.songCount,
         songs:
             (item as z.infer<typeof ssType._response.album>).song?.map((song) =>
-                normalizeSong(song, server, pathReplace, pathReplaceWith, undefined, discTitleMap),
+                normalizeSong(song, server, undefined, discTitleMap),
             ) || [],
         sortName: item.title,
         tags: null,
+        trackYearRange: null,
         updatedAt: item.created,
         userFavorite: Boolean(item.starred) || false,
         userRating: item.userRating || null,
@@ -410,8 +420,6 @@ const normalizeGenre = (
 const normalizeFolder = (
     item: z.infer<typeof ssType._response.directory>,
     server?: null | ServerListItemWithCredential,
-    pathReplace?: string,
-    pathReplaceWith?: string,
 ): Folder => {
     const results = item.child?.reduce(
         (acc: { folders: Folder[]; songs: Song[] }, item) => {
@@ -421,7 +429,7 @@ const normalizeFolder = (
                 const folder = normalizeFolder(item, server);
                 acc.folders.push(folder);
             } else {
-                const song = normalizeSong(item, server, pathReplace, pathReplaceWith);
+                const song = normalizeSong(item, server);
                 acc.songs.push(song);
             }
 

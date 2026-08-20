@@ -35,6 +35,7 @@ import { solarizedLight } from '/@/shared/themes/solarized-light/solarized-light
 import { tokyoNight } from '/@/shared/themes/tokyo-night/tokyo-night';
 import { vscodeDarkPlus } from '/@/shared/themes/vscode-dark-plus/vscode-dark-plus';
 import { vscodeLightPlus } from '/@/shared/themes/vscode-light-plus/vscode-light-plus';
+import { zenburn } from '/@/shared/themes/zenburn/zenburn';
 
 export const appTheme: Record<AppTheme, AppThemeConfiguration> = {
     [AppTheme.AYU_DARK]: ayuDark,
@@ -68,14 +69,31 @@ export const appTheme: Record<AppTheme, AppThemeConfiguration> = {
     [AppTheme.TOKYO_NIGHT]: tokyoNight,
     [AppTheme.VSCODE_DARK_PLUS]: vscodeDarkPlus,
     [AppTheme.VSCODE_LIGHT_PLUS]: vscodeLightPlus,
+    [AppTheme.ZENBURN]: zenburn,
 };
 
-export const getAppTheme = (theme: AppTheme): AppThemeConfiguration => {
+// Custom themes loaded from disk (see custom-themes-store.ts) are registered
+// here at runtime so getAppTheme can resolve `theme` values that aren't part
+// of the built-in AppTheme enum. Kept separate from `appTheme` above so the
+// built-in theme map stays a plain, statically-known record.
+let customThemeRegistry: Record<string, AppThemeConfiguration> = {};
+
+export const setCustomThemeRegistry = (registry: Record<string, AppThemeConfiguration>) => {
+    customThemeRegistry = registry;
+};
+
+const resolveThemeConfig = (theme: string): AppThemeConfiguration | undefined => {
+    return (appTheme as Record<string, AppThemeConfiguration>)[theme] ?? customThemeRegistry[theme];
+};
+
+export const getAppTheme = (theme: AppTheme | string): AppThemeConfiguration => {
+    const themeConfig = resolveThemeConfig(theme) ?? appTheme[AppTheme.DEFAULT_DARK];
+
     return {
-        app: merge({}, defaultTheme.app, appTheme[theme].app),
-        colors: merge({}, defaultTheme.colors, appTheme[theme].colors),
-        mantineOverride: merge({}, defaultTheme.mantineOverride, appTheme[theme].mantineOverride),
-        mode: appTheme[theme].mode,
-        stylesheets: appTheme[theme].stylesheets,
+        app: merge({}, defaultTheme.app, themeConfig.app),
+        colors: merge({}, defaultTheme.colors, themeConfig.colors),
+        mantineOverride: merge({}, defaultTheme.mantineOverride, themeConfig.mantineOverride),
+        mode: themeConfig.mode,
+        stylesheets: themeConfig.stylesheets,
     };
 };

@@ -4,6 +4,7 @@ import { AddToPlaylistAction } from '/@/renderer/features/context-menu/actions/a
 import { DeleteFromNasAction } from '/@/renderer/features/context-menu/actions/delete-from-nas-action';
 import { DownloadAction } from '/@/renderer/features/context-menu/actions/download-action';
 import { DownloadOfflineAction } from '/@/renderer/features/context-menu/actions/download-offline-action';
+import { EditMetadataAction } from '/@/renderer/features/context-menu/actions/edit-metadata-action';
 import { GetInfoAction } from '/@/renderer/features/context-menu/actions/get-info-action';
 import { GoToAction } from '/@/renderer/features/context-menu/actions/go-to-action';
 import { PlayAction } from '/@/renderer/features/context-menu/actions/play-action';
@@ -51,6 +52,7 @@ export const PlaylistSongContextMenu = ({ items, type }: PlaylistSongContextMenu
             <GoToAction items={items} />
             <ShowInFileExplorerAction items={items} />
             <ContextMenu.Divider />
+            <EditMetadataAction songs={items} />
             <GetInfoAction disabled={items.length === 0} items={items} />
             <ContextMenu.Divider />
             <DeleteFromNasAction items={items} />

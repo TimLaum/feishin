@@ -4,6 +4,20 @@ export const NAS_API_BASE = 'http://192.168.1.20:8787';
 
 // ── Types partagés ─────────────────────────────────────────────────────────
 
+export interface ActiveDownload {
+    artist: string;
+    downloadId: string;
+    state: DownloadState;
+    title: string;
+}
+
+export type DownloadState =
+    | { alreadyExisted?: boolean; status: 'done' }
+    | { downloadId: string; message: string; progress: number; status: 'active' }
+    | { message: string; status: 'error' }
+    | { status: 'idle' }
+    | { status: 'starting' };
+
 export type DownloadStatus =
     | 'already_exists'
     | 'done'
@@ -17,24 +31,10 @@ export type DownloadStatus =
 
 export interface DownloadStatusResponse {
     artist: string;
-    error: string | null;
-    file: string | null;
+    error: null | string;
+    file: null | string;
     progress: number;
     status: DownloadStatus;
-    title: string;
-}
-
-export type DownloadState =
-    | { status: 'idle' }
-    | { status: 'starting' }
-    | { downloadId: string; message: string; progress: number; status: 'active' }
-    | { alreadyExisted?: boolean; status: 'done' }
-    | { message: string; status: 'error' };
-
-export interface ActiveDownload {
-    artist: string;
-    downloadId: string;
-    state: DownloadState;
     title: string;
 }
 
@@ -53,7 +53,8 @@ export const useWebSearchDownloadStore = create<WebSearchDownloadStore>((set) =>
 
     removeDownload: (resultId) =>
         set((s) => {
-            const { [resultId]: _, ...rest } = s.downloads;
+            const rest = { ...s.downloads };
+            delete rest[resultId];
             return { downloads: rest };
         }),
 

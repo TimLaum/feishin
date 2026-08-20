@@ -73,7 +73,7 @@ export const OfflineAutoSkipHook = () => {
                     title: 'Offline mode',
                 });
             }
-            mediaNext();
+            mediaNext(false);
         }, SKIP_DELAY_MS);
 
         return () => clearTimeout(timer);

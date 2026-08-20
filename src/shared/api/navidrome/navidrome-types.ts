@@ -27,7 +27,9 @@ export enum NDAlbumListSort {
 }
 
 export enum NDGenreListSort {
+    ALBUM_COUNT = 'albumCount',
     NAME = 'name',
+    SONG_COUNT = 'songCount',
 }
 
 export enum NDPlaylistListSort {
@@ -57,6 +59,7 @@ export enum NDSongListSort {
     RANDOM = 'random',
     RATING = 'rating',
     RECENTLY_ADDED = 'createdAt',
+    RELEASE_YEAR = 'releaseYear',
     TITLE = 'title',
     TRACK = 'track',
     YEAR = 'year',
@@ -216,6 +219,17 @@ export const NDSongQueryPlaylistOperators = [
     },
 ];
 
+const NDPresenceOperators = [
+    {
+        label: i18n.t('filterOperator.isMissing'),
+        value: 'isMissing',
+    },
+    {
+        label: i18n.t('filterOperator.isPresent'),
+        value: 'isPresent',
+    },
+];
+
 export const NDSongQueryDateOperators = [
     {
         label: i18n.t('filterOperator.is'),
@@ -225,6 +239,7 @@ export const NDSongQueryDateOperators = [
         label: i18n.t('filterOperator.isNot'),
         value: 'isNot',
     },
+    ...NDPresenceOperators,
     {
         label: i18n.t('filterOperator.before'),
         value: 'before',
@@ -268,6 +283,7 @@ export const NDSongQueryStringOperators = [
         label: i18n.t('filterOperator.isNot'),
         value: 'isNot',
     },
+    ...NDPresenceOperators,
     {
         label: i18n.t('filterOperator.contains'),
         value: 'contains',
@@ -295,6 +311,7 @@ export const NDSongQueryBooleanOperators = [
         label: i18n.t('filterOperator.isNot'),
         value: 'isNot',
     },
+    ...NDPresenceOperators,
 ];
 
 export const NDSongQueryNumberOperators = [
@@ -306,6 +323,7 @@ export const NDSongQueryNumberOperators = [
         label: i18n.t('filterOperator.isNot'),
         value: 'isNot',
     },
+    ...NDPresenceOperators,
     {
         label: i18n.t('filterOperator.contains'),
         value: 'contains',
@@ -538,6 +556,7 @@ const song = z.object({
     comment: z.string().optional(),
     compilation: z.boolean(),
     createdAt: z.string(),
+    date: z.string().optional(),
     discNumber: z.number(),
     discSubtitle: z.string().optional(),
     duration: z.number(),
@@ -717,7 +736,7 @@ const shareItem = z.object({
 const shareItemParameters = z.object({
     description: z.string(),
     downloadable: z.boolean(),
-    expires: z.number(),
+    expires: z.number().optional(),
     resourceIds: z.string(),
     resourceType: z.string(),
 });
@@ -739,6 +758,8 @@ const tag = z.object({
 const tagList = z.array(tag);
 
 export enum NDTagListSort {
+    ALBUM_COUNT = 'albumCount',
+    SONG_COUNT = 'songCount',
     TAG_VALUE = 'tagValue',
 }
 
