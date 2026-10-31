@@ -12,7 +12,7 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 git pull --ff-only origin development
-version=$(npm version "${1:-patch}" --no-git-tag-version)
+version=$(npm version "${1:-patch}" --no-git-tag-version --ignore-scripts)
 git commit -qam "chore(release): $version"
 git tag "$version"
 git push origin development "$version"
