@@ -37,6 +37,12 @@ const UpdateAvailableDialog = lazy(() =>
     })),
 );
 
+const UpdateReadyDialog = lazy(() =>
+    import('./update-ready-dialog').then((module) => ({
+        default: module.UpdateReadyDialog,
+    })),
+);
+
 const ipc = isElectron() ? window.api.ipc : null;
 const utils = isElectron() ? window.api.utils : null;
 
@@ -105,6 +111,7 @@ const AppShell = memo(function AppShell() {
             <ReleaseNotesModal />
             <Suspense fallback={null}>
                 <UpdateAvailableDialog />
+                <UpdateReadyDialog />
             </Suspense>
         </>
     );

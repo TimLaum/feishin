@@ -170,6 +170,23 @@ const rendererUpdateAvailable = (cb: (version: string) => void) => {
     ipcRenderer.on('update-available', (_, version) => cb(version));
 };
 
+const rendererUpdateDownloaded = (cb: (version: string) => void) => {
+    const listener = (_event: unknown, version: string) => cb(version);
+    ipcRenderer.on('update-downloaded', listener);
+
+    return () => {
+        ipcRenderer.removeListener('update-downloaded', listener);
+    };
+};
+
+const getDownloadedUpdate = (): Promise<null | string> => {
+    return ipcRenderer.invoke('app-get-downloaded-update');
+};
+
+const installUpdate = () => {
+    ipcRenderer.send('app-install-update');
+};
+
 export const utils = {
     cancelReadSongMetadata,
     checkForUpdates,
@@ -179,6 +196,8 @@ export const utils = {
     exportDiagnostics,
     forceGarbageCollection,
     getCustomCss,
+    getDownloadedUpdate,
+    installUpdate,
     isLinux,
     isMacOS,
     isWindows,
@@ -200,6 +219,7 @@ export const utils = {
     rendererTogglePrivateMode,
     rendererToggleSidebar,
     rendererUpdateAvailable,
+    rendererUpdateDownloaded,
     saveCustomCss,
     separator: isWindows() ? '\\' : '/',
     setInputFocused,

@@ -346,6 +346,29 @@ function createGithubUpdaterInstance(
     return updater;
 }
 
+// Fork: re-vérifie les releases toutes les 10 min. Une fois la MAJ téléchargée, le renderer
+// propose de l'installer tout de suite ; sinon elle s'installe à la fermeture de l'app.
+const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
+let downloadedUpdateVersion: null | string = null;
+
+function startPeriodicUpdateChecks(): void {
+    autoUpdater.on('update-downloaded', (info) => {
+        downloadedUpdateVersion = info.version;
+        getMainWindow()?.webContents.send('update-downloaded', info.version);
+    });
+
+    setInterval(() => {
+        autoUpdater.checkForUpdates().catch((err) => log.warn('Periodic update check failed', err));
+    }, UPDATE_CHECK_INTERVAL_MS);
+}
+
+ipcMain.handle('app-get-downloaded-update', () => downloadedUpdateVersion);
+
+ipcMain.on('app-install-update', () => {
+    log.info('Installing downloaded update on user request', { version: downloadedUpdateVersion });
+    autoUpdater.quitAndInstall(true, true);
+});
+
 protocol.registerSchemesAsPrivileged([
     {
         privileges: { bypassCSP: true, corsEnabled: true, stream: true, supportFetchAPI: true },
@@ -909,6 +932,7 @@ async function createWindow(first = true): Promise<void> {
         // Fork: seul le canal latest est publié (alpha/beta pointeraient vers l'amont).
         store.set('release_channel', 'latest');
         new AppUpdater();
+        startPeriodicUpdateChecks();
     }
 
     const theme = store.get('theme') as TitleTheme | undefined;

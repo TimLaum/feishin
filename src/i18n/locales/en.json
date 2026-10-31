@@ -175,6 +175,9 @@
         "itemsMore": "{{count}} more",
         "lastScan": "Last scan {{date}}",
         "newVersionAvailable": "A new version is available",
+        "updateReady": "Version {{version}} is ready to install",
+        "updateNow": "Update now",
+        "later": "Later",
         "scanFolderCount": "{{count}} folders",
         "scanItemCount": "{{count}} items",
         "scanningLibrary": "Scanning library…"
