@@ -32,5 +32,5 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: >
                   pnpm run build &&
-                  pnpm exec electron-builder --win nsis --x64 --publish always
-                  -c.publish.owner=TimLaum -c.publish.releaseType=release
+                  pnpm exec electron-builder --config electron-builder-fork.yml
+                  --win nsis --x64 --publish always
