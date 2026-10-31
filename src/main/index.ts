@@ -60,8 +60,9 @@ const ALPHA_UPDATER_CONFIG: {
     provider: 's3',
 };
 
+// Fork: les mises à jour viennent des releases de TimLaum/feishin, jamais de l'amont.
 const GITHUB_UPDATER_CONFIG = {
-    owner: 'jeffvli',
+    owner: 'TimLaum',
     provider: 'github' as const,
     repo: 'feishin',
 };
@@ -905,6 +906,8 @@ async function createWindow(first = true): Promise<void> {
     });
 
     if (!disableAutoUpdates() && store.get('disable_auto_updates') !== true) {
+        // Fork: seul le canal latest est publié (alpha/beta pointeraient vers l'amont).
+        store.set('release_channel', 'latest');
         new AppUpdater();
     }
 

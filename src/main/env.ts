@@ -1,7 +1,5 @@
-// Fork: les mises à jour automatiques sont désactivées en dur pour ne jamais
-// récupérer les releases officielles de jeffvli/feishin.
 export const disableAutoUpdates = () => {
-    return true;
+    return process.env['DISABLE_AUTO_UPDATES'];
 };
 
 export const isMacOS = () => {

@@ -1,0 +1,36 @@
+name: Fork Release (Windows)
+
+# Déclenché par scripts/fork-release.sh (push d'un tag vX.Y.Z).
+# Publie l'installeur NSIS + latest.yml sur les releases de TimLaum/feishin,
+# là où electron-updater des PC va chercher les mises à jour.
+on:
+    push:
+        tags:
+            - 'v*.*.*'
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    publish:
+        if: github.repository == 'TimLaum/feishin'
+        runs-on: windows-latest
+
+        steps:
+            - name: Checkout git repo
+              uses: actions/checkout@v6
+
+            - name: Install Node and PNPM
+              uses: pnpm/action-setup@v4
+
+            - name: Install dependencies
+              run: pnpm install
+
+            - name: Build and Publish release
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: >
+                  pnpm run build &&
+                  pnpm exec electron-builder --win nsis --x64 --publish always
+                  -c.publish.owner=TimLaum -c.publish.releaseType=release
