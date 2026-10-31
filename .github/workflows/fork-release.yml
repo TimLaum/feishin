@@ -20,6 +20,8 @@ jobs:
         steps:
             - name: Checkout git repo
               uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
 
             - name: Install Node and PNPM
               uses: pnpm/action-setup@v4
@@ -34,3 +36,15 @@ jobs:
                   pnpm run build &&
                   pnpm exec electron-builder --config electron-builder-fork.yml
                   --win nsis --x64 --publish always
+
+            # electron-builder crée la release sans texte : on y met les commits du fork
+            # depuis le tag précédent (affichés par la modale de notes de version).
+            - name: Release notes
+              if: startsWith(github.ref, 'refs/tags/')
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  prev=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+                  notes=$(git log --first-parent --format='- %s' ${prev:+$prev..}"$GITHUB_REF_NAME" | grep -v 'chore(release)' || true)
+                  gh release edit "$GITHUB_REF_NAME" --notes "${notes:-Pas de changement notable.}"

@@ -1,7 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
-export const GITHUB_RELEASES_URL = 'https://api.github.com/repos/jeffvli/feishin/releases';
+// Fork: notes de version et détection de MAJ lues sur le fork, jamais sur l'amont.
+export const GITHUB_REPO = 'TimLaum/feishin';
+export const GITHUB_REPO_URL = `https://github.com/${GITHUB_REPO}`;
+export const GITHUB_RELEASES_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases`;
 export const RELEASES_TO_FETCH = 30;
 
 export interface GitHubRelease {
