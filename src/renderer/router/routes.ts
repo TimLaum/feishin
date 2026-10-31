@@ -36,4 +36,5 @@ export enum AppRoute {
     SERVERS = '/servers',
     SETTINGS = '/settings',
     WEB_SEARCH = '/web-search',
+    WEB_SEARCH_ARTIST = '/web-search/artist/:artistId',
 }

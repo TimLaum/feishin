@@ -13,14 +13,22 @@ import {
     RiSparkling2Line,
 } from 'react-icons/ri';
 
+import { searchArtists } from '../api';
 import { useAudioPreview } from '../hooks/use-audio-preview';
+import { isBatchActive, useBatches, useStartBatch } from '../hooks/use-batches';
+import { useOpenArtist } from '../hooks/use-open-artist';
 import {
     ActiveDownload,
     NAS_API_BASE,
     useWebSearchDownloadStore,
 } from '../store/web-search-download-store';
+import { albumSelectionKey, trackSelectionKey } from '../store/web-search-selection-store';
 import { useWebSearchUIStore } from '../store/web-search-ui-store';
+import { ArtistRow } from './artist-row';
 import { PlaylistImportPanel } from './playlist-import-panel';
+import { SelectionCheckbox } from './selection-checkbox';
+import { WebDownloadsPanel } from './web-downloads-panel';
+import styles from './web-search.module.css';
 
 import { Badge } from '/@/shared/components/badge/badge';
 import { Button } from '/@/shared/components/button/button';
@@ -45,6 +53,8 @@ export interface AlbumSearchResult {
     year?: null | string;
 }
 
+export type ViewMode = 'albums' | 'artists' | 'downloads' | 'playlists' | 'tracks';
+
 export interface WebSearchResult {
     album: string;
     artist: string;
@@ -62,8 +72,6 @@ interface DownloadResponse {
     download_id: string;
     status: string;
 }
-
-type ViewMode = 'albums' | 'playlists' | 'tracks';
 
 // ── API helpers ────────────────────────────────────────────────────────────
 
@@ -178,11 +186,16 @@ export const queueDownload = async (
 
 interface ResultRowProps {
     isPlaying: boolean;
+    // Fiche artiste : pas de lien vers l'artiste qu'on regarde déjà
+    noArtistLink?: boolean;
     onPlay: (id: string, previewUrl: string) => void;
+    // Position dans un classement (titres populaires d'un artiste)
+    rank?: number;
     result: WebSearchResult;
 }
 
-export const ResultRow = ({ isPlaying, onPlay, result }: ResultRowProps) => {
+export const ResultRow = ({ isPlaying, noArtistLink, onPlay, rank, result }: ResultRowProps) => {
+    const openArtist = useOpenArtist();
     const download = useWebSearchDownloadStore((s) => s.downloads[result.id]);
     const setDownload = useWebSearchDownloadStore((s) => s.setDownload);
     const openSimilar = useWebSearchUIStore((s) => s.openSimilar);
@@ -217,6 +230,7 @@ export const ResultRow = ({ isPlaying, onPlay, result }: ResultRowProps) => {
 
     return (
         <Group
+            className={styles.selectable}
             gap="md"
             style={{
                 borderBottom: '1px solid var(--theme-colors-border)',
@@ -224,6 +238,12 @@ export const ResultRow = ({ isPlaying, onPlay, result }: ResultRowProps) => {
             }}
             wrap="nowrap"
         >
+            <SelectionCheckbox
+                entry={{ item: result, kind: 'track' }}
+                selectionKey={trackSelectionKey(result)}
+            />
+            {rank !== undefined && <span className={styles.rank}>{rank}</span>}
+
             {/* Thumbnail + preview button */}
             <div style={{ flexShrink: 0, position: 'relative' }}>
                 <div
@@ -297,7 +317,17 @@ export const ResultRow = ({ isPlaying, onPlay, result }: ResultRowProps) => {
                     size="xs"
                     style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 >
-                    {result.artist}
+                    {noArtistLink || !result.artist ? (
+                        result.artist
+                    ) : (
+                        <button
+                            className={styles.artistLink}
+                            onClick={() => openArtist({ name: result.artist })}
+                            type="button"
+                        >
+                            {result.artist}
+                        </button>
+                    )}
                     {result.album ? ` — ${result.album}` : ''}
                     {result.year ? ` • ${result.year}` : ''}
                 </Text>
@@ -406,8 +436,9 @@ export const AlbumRow = ({ album, isExpanded, onPlay, onToggle, playingId }: Alb
     const [isLoadingTracks, setIsLoadingTracks] = useState(false);
     const [tracksError, setTracksError] = useState<null | string>(null);
     const [isDownloadingAll, setIsDownloadingAll] = useState(false);
-    const setDownload = useWebSearchDownloadStore((s) => s.setDownload);
-    // Ref to avoid stale closure in handleDownloadAll without re-creating loadTracks
+    const startBatch = useStartBatch();
+    const openArtist = useOpenArtist();
+    // Ref : pistes déjà chargées, sans recréer loadTracks
     const tracksRef = useRef<WebSearchResult[]>([]);
 
     const loadTracks = useCallback(async (): Promise<WebSearchResult[]> => {
@@ -439,22 +470,22 @@ export const AlbumRow = ({ album, isExpanded, onPlay, onToggle, playingId }: Alb
         if (!isExpanded) await loadTracks();
     }, [album.deezer_id, isExpanded, loadTracks, onToggle]);
 
+    // Lot serveur : l'API déplie l'album, saute ce qui est déjà en bibliothèque
+    // et ne lance qu'un scan Navidrome à la fin.
     const handleDownloadAll = useCallback(async () => {
         setIsDownloadingAll(true);
-        try {
-            const list = tracksRef.current.length > 0 ? tracksRef.current : await loadTracks();
-            await Promise.allSettled(
-                list.map((track) => queueDownload(track, track.id, setDownload)),
-            );
-        } finally {
-            setIsDownloadingAll(false);
-        }
-    }, [loadTracks, setDownload]);
+        await startBatch({
+            album_ids: [album.deezer_id],
+            name: `${album.title} — ${album.artist}`,
+        });
+        setIsDownloadingAll(false);
+    }, [album.artist, album.deezer_id, album.title, startBatch]);
 
     return (
         <div>
             {/* Album header */}
             <Group
+                className={styles.selectable}
                 gap="md"
                 style={{
                     borderBottom: isExpanded ? 'none' : '1px solid var(--theme-colors-border)',
@@ -462,6 +493,11 @@ export const AlbumRow = ({ album, isExpanded, onPlay, onToggle, playingId }: Alb
                 }}
                 wrap="nowrap"
             >
+                <SelectionCheckbox
+                    entry={{ item: album, kind: 'album' }}
+                    selectionKey={albumSelectionKey(album)}
+                />
+
                 {/* Cover */}
                 <div
                     style={{
@@ -509,7 +545,13 @@ export const AlbumRow = ({ album, isExpanded, onPlay, onToggle, playingId }: Alb
                             whiteSpace: 'nowrap',
                         }}
                     >
-                        {album.artist}
+                        <button
+                            className={styles.artistLink}
+                            onClick={() => openArtist({ name: album.artist })}
+                            type="button"
+                        >
+                            {album.artist}
+                        </button>
                         {album.year ? ` • ${album.year}` : ''}
                         {album.track_count ? ` • ${album.track_count} tracks` : ''}
                     </Text>
@@ -585,13 +627,16 @@ export const AlbumRow = ({ album, isExpanded, onPlay, onToggle, playingId }: Alb
 // ── Main content ───────────────────────────────────────────────────────────
 
 export const WebSearchContent = () => {
-    const [inputValue, setInputValue] = useState('');
-    const [query, setQuery] = useState('');
+    // Dernière recherche : on la retrouve en revenant d'une fiche artiste
+    const [lastSearch] = useState(() => useWebSearchUIStore.getState().lastSearch);
+    const setLastSearch = useWebSearchUIStore((s) => s.setLastSearch);
+    const [inputValue, setInputValue] = useState(lastSearch.query);
+    const [query, setQuery] = useState(lastSearch.query);
     const [offset, setOffset] = useState(0);
     const [allResults, setAllResults] = useState<WebSearchResult[]>([]);
     const [allAlbums, setAllAlbums] = useState<AlbumSearchResult[]>([]);
     const [hasMore, setHasMore] = useState(false);
-    const [viewMode, setViewMode] = useState<ViewMode>('tracks');
+    const [viewMode, setViewMode] = useState<ViewMode>(lastSearch.viewMode);
     const [expandedAlbums, setExpandedAlbums] = useState<Set<number>>(new Set());
     const [sortBy, setSortBy] = useState<'relevance' | 'year_asc' | 'year_desc'>('relevance');
     const { handlePlay, playingId } = useAudioPreview(query);
@@ -613,6 +658,13 @@ export const WebSearchContent = () => {
         setViewMode('tracks');
         setQuery(trimmed);
     }, [pendingQuery, clearPendingQuery]);
+
+    useEffect(() => {
+        setLastSearch({ query, viewMode });
+    }, [query, setLastSearch, viewMode]);
+
+    const { data: batches } = useBatches();
+    const activeBatchCount = batches?.filter(isBatchActive).length ?? 0;
 
     const sortedResults = useMemo(() => {
         if (sortBy === 'relevance') return allResults;
@@ -648,9 +700,18 @@ export const WebSearchContent = () => {
         staleTime: 60_000,
     });
 
-    const isFetching = viewMode === 'tracks' ? trackQuery.isFetching : albumQuery.isFetching;
-    const isError = viewMode === 'tracks' ? trackQuery.isError : albumQuery.isError;
-    const error = viewMode === 'tracks' ? trackQuery.error : albumQuery.error;
+    const artistQuery = useQuery({
+        enabled: query.length > 0 && viewMode === 'artists',
+        queryFn: () => searchArtists(query, SEARCH_LIMIT),
+        queryKey: ['web-search-artists', query],
+        retry: 1,
+        staleTime: 60_000,
+    });
+    const artists = artistQuery.data ?? [];
+
+    const activeQuery =
+        viewMode === 'albums' ? albumQuery : viewMode === 'artists' ? artistQuery : trackQuery;
+    const { error, isError, isFetching } = activeQuery;
 
     // Populate track results — also depends on viewMode so cached data is re-seeded on mode switch
     useEffect(() => {
@@ -713,9 +774,14 @@ export const WebSearchContent = () => {
     }, []);
 
     const isInitialLoading = isFetching && offset === 0;
-    const resultCount = viewMode === 'tracks' ? sortedResults.length : sortedAlbums.length;
-    // L'onglet « Playlists » n'est pas une recherche : il a son propre formulaire.
-    const isSearchMode = viewMode !== 'playlists';
+    const resultCount =
+        viewMode === 'albums'
+            ? sortedAlbums.length
+            : viewMode === 'artists'
+              ? artists.length
+              : sortedResults.length;
+    // « Playlists » et « Téléchargements » ne sont pas des recherches.
+    const isSearchMode = viewMode === 'albums' || viewMode === 'artists' || viewMode === 'tracks';
 
     return (
         <Stack gap={0} style={{ height: '100%' }}>
@@ -750,15 +816,22 @@ export const WebSearchContent = () => {
                     )}
                     <SegmentedControl
                         data={[
-                            { label: 'Tracks', value: 'tracks' },
+                            { label: 'Titres', value: 'tracks' },
                             { label: 'Albums', value: 'albums' },
+                            { label: 'Artistes', value: 'artists' },
                             { label: 'Playlists', value: 'playlists' },
+                            {
+                                label: activeBatchCount
+                                    ? `Téléchargements (${activeBatchCount})`
+                                    : 'Téléchargements',
+                                value: 'downloads',
+                            },
                         ]}
                         onChange={handleViewModeChange}
                         size="xs"
                         value={viewMode}
                     />
-                    {isSearchMode && (
+                    {(viewMode === 'tracks' || viewMode === 'albums') && (
                         <Select
                             checkIconPosition="right"
                             data={[
@@ -777,7 +850,8 @@ export const WebSearchContent = () => {
 
             {/* Results */}
             <ScrollArea style={{ flex: 1 }}>
-                {!isSearchMode && <PlaylistImportPanel />}
+                {viewMode === 'playlists' && <PlaylistImportPanel />}
+                {viewMode === 'downloads' && <WebDownloadsPanel />}
                 {isSearchMode && !query && (
                     <Center h={200}>
                         <Text isMuted>Enter a search query to find {viewMode}</Text>
@@ -830,6 +904,15 @@ export const WebSearchContent = () => {
                                 </Text>
                             </Center>
                         )}
+                    </Stack>
+                )}
+
+                {/* Artist results */}
+                {viewMode === 'artists' && artists.length > 0 && (
+                    <Stack gap={0}>
+                        {artists.map((artist) => (
+                            <ArtistRow artist={artist} key={artist.id} />
+                        ))}
                     </Stack>
                 )}
 

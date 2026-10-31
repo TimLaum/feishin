@@ -1,14 +1,13 @@
 import { Drawer } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import { useAudioPreview } from '../hooks/use-audio-preview';
+import { useOpenArtist } from '../hooks/use-open-artist';
 import { NAS_API_BASE } from '../store/web-search-download-store';
 import { SimilarSeed, useWebSearchUIStore } from '../store/web-search-ui-store';
 import { AlbumRow, AlbumSearchResult, ResultRow, WebSearchResult } from './web-search-content';
 
-import { AppRoute } from '/@/renderer/router/routes';
 import { Badge } from '/@/shared/components/badge/badge';
 import { Center } from '/@/shared/components/center/center';
 import { Group } from '/@/shared/components/group/group';
@@ -128,9 +127,8 @@ const ArtistTile = ({ artist, onSelect }: { artist: RelatedArtist; onSelect: () 
 // ── Drawer body ────────────────────────────────────────────────────────────
 
 const SimilarBody = ({ seed }: { seed: SimilarSeed }) => {
-    const navigate = useNavigate();
     const closeSimilar = useWebSearchUIStore((s) => s.closeSimilar);
-    const setPendingQuery = useWebSearchUIStore((s) => s.setPendingQuery);
+    const openArtist = useOpenArtist();
     const [expandedAlbums, setExpandedAlbums] = useState<Set<number>>(new Set());
     const { handlePlay, playingId } = useAudioPreview(seedKey(seed));
 
@@ -151,12 +149,11 @@ const SimilarBody = ({ seed }: { seed: SimilarSeed }) => {
     }, []);
 
     const handleSelectArtist = useCallback(
-        (name: string) => {
-            setPendingQuery(name);
+        (artist: RelatedArtist) => {
             closeSimilar();
-            navigate(AppRoute.WEB_SEARCH);
+            openArtist({ deezer_id: artist.deezer_id, name: artist.name });
         },
-        [navigate, setPendingQuery, closeSimilar],
+        [closeSimilar, openArtist],
     );
 
     if (isFetching && !data) {
@@ -227,7 +224,7 @@ const SimilarBody = ({ seed }: { seed: SimilarSeed }) => {
                                 <ArtistTile
                                     artist={artist}
                                     key={artist.deezer_id}
-                                    onSelect={() => handleSelectArtist(artist.name)}
+                                    onSelect={() => handleSelectArtist(artist)}
                                 />
                             ))}
                         </Group>

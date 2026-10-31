@@ -15,12 +15,11 @@ import {
 import { useNewReleasesStore } from '/@/renderer/features/new-releases/store';
 import {
     fetchAlbumTracks,
-    queueDownload,
     ResultRow,
     WebSearchResult,
 } from '/@/renderer/features/web-search/components/web-search-content';
 import { useAudioPreview } from '/@/renderer/features/web-search/hooks/use-audio-preview';
-import { useWebSearchDownloadStore } from '/@/renderer/features/web-search/store/web-search-download-store';
+import { useStartBatch } from '/@/renderer/features/web-search/hooks/use-batches';
 import { Button } from '/@/shared/components/button/button';
 import { Center } from '/@/shared/components/center/center';
 import { Group } from '/@/shared/components/group/group';
@@ -72,7 +71,7 @@ export const GenreDetailContent = () => {
     const [tracksError, setTracksError] = useState<null | string>(null);
     const [isDownloadingAll, setIsDownloadingAll] = useState(false);
     const { handlePlay, playingId, stop } = useAudioPreview(openedAlbum?.deezer_id);
-    const setDownload = useWebSearchDownloadStore((s) => s.setDownload);
+    const startBatch = useStartBatch();
 
     const [filter, setFilter] = useState('');
     const days = useNewReleasesStore((s) => s.days);
@@ -125,14 +124,16 @@ export const GenreDetailContent = () => {
         setOpenedAlbum(null);
     }, [stop]);
 
+    // Lot serveur : album déplié et dédoublonné par l'API, un seul scan à la fin
     const handleDownloadAll = useCallback(async () => {
+        if (!openedAlbum) return;
         setIsDownloadingAll(true);
-        try {
-            await Promise.allSettled(tracks.map((t) => queueDownload(t, t.id, setDownload)));
-        } finally {
-            setIsDownloadingAll(false);
-        }
-    }, [tracks, setDownload]);
+        await startBatch({
+            album_ids: [openedAlbum.deezer_id],
+            name: `${openedAlbum.title} — ${openedAlbum.artist}`,
+        });
+        setIsDownloadingAll(false);
+    }, [openedAlbum, startBatch]);
 
     return (
         <Stack gap={0} style={{ height: '100%' }}>

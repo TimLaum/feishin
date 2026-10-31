@@ -1,0 +1,218 @@
+/* Case de sélection : visible au survol, ou partout dès qu'une sélection existe */
+.select-box {
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.selectable:hover .select-box,
+.select-box[data-visible='true'] {
+    opacity: 1;
+}
+
+.artist-link {
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+.artist-link:hover {
+    text-decoration: underline;
+}
+
+.rank {
+    flex-shrink: 0;
+    width: 20px;
+    font-size: 0.8rem;
+    color: var(--theme-colors-foreground-muted);
+    text-align: right;
+}
+
+/* Fiche artiste */
+.back-button {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    padding: 4px 8px;
+    font: inherit;
+    font-size: 0.85rem;
+    color: var(--theme-colors-foreground-muted);
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+}
+
+.back-button:hover {
+    background: var(--theme-colors-surface);
+}
+
+.hero {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    padding: 24px 20px 8px;
+}
+
+.avatar {
+    flex-shrink: 0;
+    width: 160px;
+    height: 160px;
+    overflow: hidden;
+    background: var(--theme-colors-surface);
+    border-radius: 50%;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.section-title {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 20px 20px 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.section-count {
+    font-weight: 400;
+    color: var(--theme-colors-foreground-muted);
+}
+
+/* Carrousel horizontal (discographie, artistes similaires) */
+.shelf {
+    display: flex;
+    gap: 8px;
+    padding: 0 12px 8px;
+    overflow-x: auto;
+}
+
+.card {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: 6px;
+    width: 172px;
+    padding: 8px;
+    text-align: left;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+}
+
+.card:hover {
+    background: var(--theme-colors-surface);
+}
+
+.cover {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: var(--theme-colors-surface);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+}
+
+.cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cover-select {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+}
+
+.card-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.card-sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.8rem;
+    color: var(--theme-colors-foreground-muted);
+    white-space: nowrap;
+}
+
+.bubble {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    width: 120px;
+    padding: 8px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+}
+
+.bubble:hover {
+    background: var(--theme-colors-surface);
+}
+
+.bubble img,
+.bubble-empty {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    background: var(--theme-colors-surface);
+    border-radius: 50%;
+}
+
+/* Barre de sélection, au-dessus du lecteur */
+.selection-bar {
+    position: fixed;
+    bottom: 110px;
+    left: 50%;
+    z-index: 200;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--theme-colors-background);
+    border: 1px solid var(--theme-colors-border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+    transform: translateX(-50%);
+}
+
+/* Onglet Téléchargements */
+.job {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--theme-colors-border);
+}
+
+.fails summary {
+    font-size: 0.8rem;
+    color: var(--mantine-color-red-6);
+    cursor: pointer;
+}
+
+.fails ul {
+    padding-left: 18px;
+    margin: 4px 0 0;
+    font-size: 0.8rem;
+    color: var(--theme-colors-foreground-muted);
+}

@@ -8,8 +8,10 @@ import { OfflineDownloadManager } from '/@/renderer/features/offline/components/
 import { OfflineModeEffect } from '/@/renderer/features/offline/components/offline-mode-effect';
 import { OfflineSyncManager } from '/@/renderer/features/offline/components/offline-sync-manager';
 import { OfflineAutoSkipHook } from '/@/renderer/features/offline/hooks/use-offline-auto-skip';
+import { BatchManager } from '/@/renderer/features/web-search/components/batch-manager';
 import { DownloadManager } from '/@/renderer/features/web-search/components/download-manager';
 import { PlaylistImportManager } from '/@/renderer/features/web-search/components/playlist-import-manager';
+import { SelectionBar } from '/@/renderer/features/web-search/components/selection-bar';
 import { SimilarDrawer } from '/@/renderer/features/web-search/components/similar-drawer';
 import { MainContent } from '/@/renderer/layouts/default-layout/main-content';
 import { PlayerBar } from '/@/renderer/layouts/default-layout/player-bar';
@@ -47,6 +49,8 @@ export const DefaultLayout = ({ shell }: DefaultLayoutProps) => {
             </div>
             <ContextMenuController.Root />
             <DownloadManager />
+            <BatchManager />
+            <SelectionBar />
             <PlaylistImportManager />
             <SimilarDrawer />
             <OfflineDownloadManager />
