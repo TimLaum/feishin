@@ -1,9 +1,9 @@
-# Config du fork : identique à electron-builder.yml, mais publie (en release,
-# pas en brouillon) sur TimLaum/feishin, là où l'updater des PC va chercher.
+# Config du fork : identique à electron-builder.yml, mais publie sur TimLaum/feishin,
+# dans le brouillon de release créé par .github/workflows/fork-release.yml.
 extends: ./electron-builder.yml
 publish:
     provider: github
     owner: TimLaum
     repo: feishin
     channel: latest
-    releaseType: release
+    releaseType: draft
