@@ -8,7 +8,6 @@ import {
     RiDownload2Line,
     RiDownloadCloud2Line,
     RiErrorWarningLine,
-    RiGlobalLine,
     RiPauseFill,
     RiPlayFill,
     RiSparkling2Line,
@@ -23,7 +22,6 @@ import { ActiveDownload, useWebSearchDownloadStore } from '../store/web-search-d
 import { albumSelectionKey, trackSelectionKey } from '../store/web-search-selection-store';
 import { useWebSearchUIStore } from '../store/web-search-ui-store';
 import { ArtistRow } from './artist-row';
-import { NasAccessModal } from './nas-access-modal';
 import { PlaylistImportPanel } from './playlist-import-panel';
 import { SelectionCheckbox } from './selection-checkbox';
 import { WebDownloadsPanel } from './web-downloads-panel';
@@ -772,7 +770,6 @@ export const WebSearchContent = () => {
         });
     }, []);
 
-    const [isAccessOpen, setIsAccessOpen] = useState(false);
     const isInitialLoading = isFetching && offset === 0;
     const resultCount =
         viewMode === 'albums'
@@ -792,18 +789,9 @@ export const WebSearchContent = () => {
                     padding: '16px 20px',
                 }}
             >
-                <Group align="center" gap="md" justify="space-between" mb="sm">
+                <Group align="center" gap="md" mb="sm">
                     <TextTitle order={3}>Web Search</TextTitle>
-                    <Button
-                        leftSection={<RiGlobalLine size={14} />}
-                        onClick={() => setIsAccessOpen(true)}
-                        size="xs"
-                        variant="subtle"
-                    >
-                        Accès distant
-                    </Button>
                 </Group>
-                <NasAccessModal onClose={() => setIsAccessOpen(false)} opened={isAccessOpen} />
                 <Group gap="sm">
                     {isSearchMode && (
                         <>

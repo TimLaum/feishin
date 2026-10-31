@@ -1,20 +1,24 @@
-import { NasRoute, useNasAccessStore } from './store/nas-access-store';
+import { useAuthStore } from '/@/renderer/store/auth.store';
 
 // Client unique de l'API musique du NAS : en direct sur le réseau local (pas
-// d'authentification), sinon par le domaine public avec le jeton Feishin.
+// d'authentification), sinon par le domaine public. À distance, l'API est
+// authentifiée par la session Navidrome déjà ouverte dans Feishin : l'identifiant
+// Subsonic du serveur courant (u, s, t) part dans X-Navidrome-Credential et l'API
+// le fait valider par Navidrome. Rien à configurer.
 export const NAS_LAN_BASE = 'http://192.168.1.20:8787';
+const NAS_PUBLIC_BASE = 'https://dl.utl.duckdns.org';
 
 const LAN_PROBE_TIMEOUT_MS = 1500;
 // Au-delà, on revérifie le chemin en arrière-plan (retour à la maison, départ…)
 const ROUTE_TTL_MS = 60_000;
 
+type NasRoute = 'lan' | 'public';
+
+let route: NasRoute | null = null;
 let checkedAt = 0;
 let probing: null | Promise<NasRoute> = null;
 
-const hasRemoteAccess = () => {
-    const { publicUrl, token } = useNasAccessStore.getState();
-    return Boolean(publicUrl && token);
-};
+const navidromeCredential = () => useAuthStore.getState().currentServer?.credential ?? '';
 
 const probeRoute = (): Promise<NasRoute> => {
     probing ??= fetch(`${NAS_LAN_BASE}/batches?hours=1`, {
@@ -25,9 +29,7 @@ const probeRoute = (): Promise<NasRoute> => {
         .then(async (res) => res.ok && Array.isArray(await res.json()))
         .catch(() => false)
         .then((lanOk) => {
-            // Sans accès distant configuré, on reste en local (l'erreur sera explicite)
-            const route: NasRoute = lanOk || !hasRemoteAccess() ? 'lan' : 'public';
-            useNasAccessStore.getState().setRoute(route);
+            route = lanOk ? 'lan' : 'public';
             checkedAt = Date.now();
             probing = null;
             return route;
@@ -36,29 +38,23 @@ const probeRoute = (): Promise<NasRoute> => {
 };
 
 const resolveRoute = async (): Promise<NasRoute> => {
-    const { route } = useNasAccessStore.getState();
     if (!route) return probeRoute();
     // Chemin connu mais ancien : on le réutilise et on revérifie sans attendre
     if (Date.now() - checkedAt > ROUTE_TTL_MS) probeRoute();
     return route;
 };
 
-/** À appeler quand les réglages ou le réseau changent. */
-export const resetNasRoute = () => {
-    checkedAt = 0;
-    probing = null;
-    useNasAccessStore.setState({ route: null });
-};
-
 if (typeof window !== 'undefined') {
-    window.addEventListener('online', resetNasRoute);
+    window.addEventListener('online', () => {
+        route = null;
+        probing = null;
+    });
 }
 
 const fetchPublic = (path: string, init: RequestInit) => {
-    const { publicUrl, token } = useNasAccessStore.getState();
     const headers = new Headers(init.headers);
-    headers.set('Authorization', `Bearer ${token}`);
-    return fetch(`${publicUrl}${path}`, { ...init, headers });
+    headers.set('X-Navidrome-Credential', navidromeCredential());
+    return fetch(`${NAS_PUBLIC_BASE}${path}`, { ...init, headers });
 };
 
 /** `fetch` vers l'API du NAS ; `path` commence par « / ». */
@@ -66,10 +62,9 @@ export const nasFetch = async (path: string, init: RequestInit = {}): Promise<Re
     if ((await resolveRoute()) === 'public') return fetchPublic(path, init);
     try {
         return await fetch(`${NAS_LAN_BASE}${path}`, init);
-    } catch (err) {
+    } catch {
         // Réseau local perdu en cours de route : on bascule tout de suite
-        if (!hasRemoteAccess()) throw err;
-        useNasAccessStore.getState().setRoute('public');
+        route = 'public';
         checkedAt = Date.now();
         return fetchPublic(path, init);
     }
@@ -77,27 +72,11 @@ export const nasFetch = async (path: string, init: RequestInit = {}): Promise<Re
 
 /**
  * URL lisible par un <audio> : les extraits YouTube servis par l'API arrivent en
- * adresse locale ; à distance, on passe par le domaine public (jeton en
+ * adresse locale ; à distance, on passe par le domaine public (identifiant en
  * paramètre, l'API ne l'accepte que sur /preview/).
  */
 export const nasMediaUrl = (url: string): string => {
-    const { publicUrl, route, token } = useNasAccessStore.getState();
     if (route !== 'public' || !url.startsWith(NAS_LAN_BASE)) return url;
     const sep = url.includes('?') ? '&' : '?';
-    return `${publicUrl}${url.slice(NAS_LAN_BASE.length)}${sep}token=${encodeURIComponent(token)}`;
-};
-
-/** Teste l'accès distant tel que configuré, même depuis le réseau local. */
-export const testRemoteAccess = async (publicUrl: string, token: string): Promise<string> => {
-    try {
-        const res = await fetch(`${publicUrl.trim().replace(/\/+$/, '')}/batches?hours=1`, {
-            headers: { Authorization: `Bearer ${token.trim()}` },
-            signal: AbortSignal.timeout(8000),
-        });
-        if (res.ok) return 'ok';
-        if (res.status === 401) return 'Jeton refusé';
-        return `Réponse ${res.status}`;
-    } catch {
-        return 'Adresse injoignable';
-    }
+    return `${NAS_PUBLIC_BASE}${url.slice(NAS_LAN_BASE.length)}${sep}nd=${encodeURIComponent(navidromeCredential())}`;
 };
