@@ -7,3 +7,14 @@ publish:
     repo: feishin
     channel: latest
     releaseType: draft
+# Poids mort retiré de l'archive (~125 Mo sur 218) : asar, compression NSIS et
+# téléchargement des MAJ plus courts. La liste s'ajoute à celle du parent.
+# - sourcemaps : jamais lues à l'exécution (celles de out/ restent générées) ;
+# - react-icons, butterchurn-presets : déjà intégrés au bundle Vite de l'interface,
+#   qui tourne en sandbox sans nodeIntegration (elle ne peut rien charger de
+#   node_modules) ; ni le process principal ni le preload ne les utilisent.
+files:
+    - '!out/**/*.map'
+    - '!node_modules/**/*.map'
+    - '!node_modules/react-icons/**'
+    - '!node_modules/butterchurn-presets/**'

@@ -35,19 +35,30 @@ jobs:
                   gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
                       --title "${GITHUB_REF_NAME#v}" --notes "${notes:-Pas de changement notable.}"
 
-            - name: Install Node and PNPM
+            - name: Install PNPM
               uses: pnpm/action-setup@v4
 
+            # Cache du store pnpm : sans lui, les ~1 200 paquets sont retéléchargés à chaque release
+            - name: Install Node (pnpm cache)
+              uses: actions/setup-node@v4
+              with:
+                  cache: pnpm
+                  node-version: 24
+
             - name: Install dependencies
-              run: pnpm install
+              run: pnpm install --frozen-lockfile
 
             - name: Build and upload to draft release
+              shell: bash
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: >
-                  pnpm run build &&
-                  pnpm exec electron-builder --config electron-builder-fork.yml
-                  --win nsis --x64 --publish always
+              run: |
+                  # Interface (electron-vite) et télécommande web sont indépendantes : en parallèle
+                  pnpm run build:electron &
+                  electron_build=$!
+                  pnpm run build:remote
+                  wait "$electron_build"
+                  pnpm exec electron-builder --config electron-builder-fork.yml --win nsis --x64 --publish always
 
             - name: Publish release
               shell: bash
