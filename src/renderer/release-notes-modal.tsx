@@ -67,14 +67,19 @@ const ReleaseNotesContent = ({ onDismiss, version }: ReleaseNotesContentProps) =
     }, [releasesList]);
 
     const releaseOptions = useMemo(() => {
-        const options = releasesList.slice(0, RELEASES_TO_FETCH).map((r) => {
-            const v = parseVersionFromTag(r.tag_name);
-            const dateStr = formatHrDateTime(r.published_at);
-            return {
-                label: dateStr ? `${v} - ${dateStr}` : v,
-                value: v,
-            };
-        });
+        const options = releasesList
+            .slice(0, RELEASES_TO_FETCH)
+            .map((r) => {
+                const v = parseVersionFromTag(r.tag_name);
+                const dateStr = formatHrDateTime(r.published_at);
+                return {
+                    label: dateStr ? `${v} - ${dateStr}` : v,
+                    value: v,
+                };
+            })
+            // Fork: deux releases peuvent porter le même tag, et le Select de Mantine
+            // lève une exception sur les valeurs en double (écran noir au démarrage).
+            .filter((o, i, all) => all.findIndex((x) => x.value === o.value) === i);
         const versions = options.map((o) => o.value);
         if (!versions.includes(version)) {
             options.unshift({ label: version, value: version });
