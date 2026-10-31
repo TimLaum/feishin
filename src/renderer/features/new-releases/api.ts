@@ -1,5 +1,5 @@
 import { AlbumSearchResult } from '/@/renderer/features/web-search/components/web-search-content';
-import { NAS_API_BASE } from '/@/renderer/features/web-search/store/web-search-download-store';
+import { nasFetch } from '/@/renderer/features/web-search/nas-fetch';
 
 export interface NewReleaseAlbum {
     artist: string;
@@ -43,9 +43,7 @@ export const fetchNewReleases = async (
     days = NEW_RELEASES_DAYS,
     limitPerGenre = NEW_RELEASES_LIMIT,
 ): Promise<NewReleaseGenreGroup[]> => {
-    const res = await fetch(
-        `${NAS_API_BASE}/new-releases?days=${days}&limit_per_genre=${limitPerGenre}`,
-    );
+    const res = await nasFetch(`/new-releases?days=${days}&limit_per_genre=${limitPerGenre}`);
     if (!res.ok) throw new Error(`Failed to load new releases: ${res.statusText}`);
     return res.json();
 };

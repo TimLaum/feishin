@@ -2,13 +2,12 @@ import { closeAllModals, openModal } from '@mantine/modals';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { nasFetch } from '/@/renderer/features/web-search/nas-fetch';
 import { ContextMenu } from '/@/shared/components/context-menu/context-menu';
 import { ConfirmModal } from '/@/shared/components/modal/modal';
 import { Text } from '/@/shared/components/text/text';
 import { toast } from '/@/shared/components/toast/toast';
 import { Song } from '/@/shared/types/domain-types';
-
-const NAS_API_BASE = 'http://192.168.1.20:8787';
 
 interface DeleteFromNasActionProps {
     items: Song[];
@@ -20,7 +19,7 @@ export const DeleteFromNasAction = ({ items }: DeleteFromNasActionProps) => {
     const handleDelete = useCallback(async () => {
         const results = await Promise.allSettled(
             items.map((song) =>
-                fetch(`${NAS_API_BASE}/delete`, {
+                nasFetch(`/delete`, {
                     body: JSON.stringify({
                         album: song.album ?? undefined,
                         artist: song.artistName,
@@ -31,7 +30,9 @@ export const DeleteFromNasAction = ({ items }: DeleteFromNasActionProps) => {
                 }).then(async (res) => {
                     const data = await res.json();
                     if (!res.ok || !data.deleted) {
-                        throw new Error(data.error ?? `Failed to delete "${song.name}"`);
+                        throw new Error(
+                            data.error ?? data.detail ?? `Failed to delete "${song.name}"`,
+                        );
                     }
                     return data;
                 }),

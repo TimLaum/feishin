@@ -8,6 +8,7 @@ import {
     RiDownload2Line,
     RiDownloadCloud2Line,
     RiErrorWarningLine,
+    RiGlobalLine,
     RiPauseFill,
     RiPlayFill,
     RiSparkling2Line,
@@ -17,14 +18,12 @@ import { searchArtists } from '../api';
 import { useAudioPreview } from '../hooks/use-audio-preview';
 import { isBatchActive, useBatches, useStartBatch } from '../hooks/use-batches';
 import { useOpenArtist } from '../hooks/use-open-artist';
-import {
-    ActiveDownload,
-    NAS_API_BASE,
-    useWebSearchDownloadStore,
-} from '../store/web-search-download-store';
+import { nasFetch } from '../nas-fetch';
+import { ActiveDownload, useWebSearchDownloadStore } from '../store/web-search-download-store';
 import { albumSelectionKey, trackSelectionKey } from '../store/web-search-selection-store';
 import { useWebSearchUIStore } from '../store/web-search-ui-store';
 import { ArtistRow } from './artist-row';
+import { NasAccessModal } from './nas-access-modal';
 import { PlaylistImportPanel } from './playlist-import-panel';
 import { SelectionCheckbox } from './selection-checkbox';
 import { WebDownloadsPanel } from './web-downloads-panel';
@@ -82,8 +81,8 @@ const searchTracks = async (
     limit: number,
     offset: number,
 ): Promise<WebSearchResult[]> => {
-    const res = await fetch(
-        `${NAS_API_BASE}/search?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`,
+    const res = await nasFetch(
+        `/search?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`,
     );
     if (!res.ok) throw new Error(`Search failed: ${res.statusText}`);
     return res.json();
@@ -94,22 +93,22 @@ const searchAlbums = async (
     limit: number,
     offset: number,
 ): Promise<AlbumSearchResult[]> => {
-    const res = await fetch(
-        `${NAS_API_BASE}/search/albums?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`,
+    const res = await nasFetch(
+        `/search/albums?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`,
     );
     if (!res.ok) throw new Error(`Album search failed: ${res.statusText}`);
     return res.json();
 };
 
 export const fetchAlbumTracks = async (albumId: number): Promise<WebSearchResult[]> => {
-    const res = await fetch(`${NAS_API_BASE}/album/${albumId}/tracks`);
+    const res = await nasFetch(`/album/${albumId}/tracks`);
     if (!res.ok) throw new Error(`Failed to load tracks: ${res.statusText}`);
     const data = await res.json();
     return Array.isArray(data) ? data : (data.data ?? data.tracks ?? []);
 };
 
 const startDownload = async (result: WebSearchResult): Promise<DownloadResponse> => {
-    const res = await fetch(`${NAS_API_BASE}/download`, {
+    const res = await nasFetch(`/download`, {
         body: JSON.stringify({
             album: result.album,
             artist: result.artist,
@@ -130,8 +129,8 @@ const startDownload = async (result: WebSearchResult): Promise<DownloadResponse>
 };
 
 const checkInLibrary = async (artist: string, title: string): Promise<{ exists: boolean }> => {
-    const res = await fetch(
-        `${NAS_API_BASE}/check?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`,
+    const res = await nasFetch(
+        `/check?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`,
     );
     if (!res.ok) return { exists: false };
     return res.json();
@@ -773,6 +772,7 @@ export const WebSearchContent = () => {
         });
     }, []);
 
+    const [isAccessOpen, setIsAccessOpen] = useState(false);
     const isInitialLoading = isFetching && offset === 0;
     const resultCount =
         viewMode === 'albums'
@@ -792,9 +792,18 @@ export const WebSearchContent = () => {
                     padding: '16px 20px',
                 }}
             >
-                <Group align="center" gap="md" mb="sm">
+                <Group align="center" gap="md" justify="space-between" mb="sm">
                     <TextTitle order={3}>Web Search</TextTitle>
+                    <Button
+                        leftSection={<RiGlobalLine size={14} />}
+                        onClick={() => setIsAccessOpen(true)}
+                        size="xs"
+                        variant="subtle"
+                    >
+                        Accès distant
+                    </Button>
                 </Group>
+                <NasAccessModal onClose={() => setIsAccessOpen(false)} opened={isAccessOpen} />
                 <Group gap="sm">
                     {isSearchMode && (
                         <>

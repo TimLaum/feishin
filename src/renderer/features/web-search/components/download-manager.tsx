@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 
+import { nasFetch } from '../nas-fetch';
 import {
     DownloadStatusResponse,
-    NAS_API_BASE,
     useWebSearchDownloadStore,
 } from '../store/web-search-download-store';
 
@@ -21,7 +21,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const fetchStatus = async (downloadId: string): Promise<DownloadStatusResponse> => {
-    const res = await fetch(`${NAS_API_BASE}/status/${downloadId}`);
+    const res = await nasFetch(`/status/${downloadId}`);
     if (!res.ok) throw new Error(`Status failed: ${res.statusText}`);
     return res.json();
 };

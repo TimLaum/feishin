@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { nasMediaUrl } from '../nas-fetch';
+
 /**
  * Shared 30s-preview player for web-search / new-releases rows.
  * Only one preview plays at a time. Pass a `resetKey` (e.g. the search query)
@@ -21,7 +23,7 @@ export const useAudioPreview = (resetKey?: unknown) => {
                 stop();
             } else {
                 audioRef.current?.pause();
-                const audio = new Audio(previewUrl);
+                const audio = new Audio(nasMediaUrl(previewUrl));
                 audio.volume = 0.004;
                 audio.play();
                 audio.onended = () => setPlayingId(null);

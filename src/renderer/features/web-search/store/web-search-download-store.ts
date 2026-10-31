@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 
-export const NAS_API_BASE = 'http://192.168.1.20:8787';
-
 // ── Types partagés ─────────────────────────────────────────────────────────
 
 export interface ActiveDownload {

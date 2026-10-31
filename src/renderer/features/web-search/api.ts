@@ -1,6 +1,6 @@
 import type { AlbumSearchResult, WebSearchResult } from './components/web-search-content';
 
-import { NAS_API_BASE } from './store/web-search-download-store';
+import { nasFetch } from './nas-fetch';
 
 // ── Types (miroir des modèles de download_api.py) ──────────────────────────
 
@@ -86,7 +86,7 @@ export type RecordType = 'album' | 'compile' | 'ep' | 'single';
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-    const res = await fetch(`${NAS_API_BASE}${path}`, init);
+    const res = await nasFetch(path, init);
     if (!res.ok) {
         let message = `${res.status} ${res.statusText}`;
         try {

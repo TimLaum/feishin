@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { NAS_API_BASE } from './web-search-download-store';
+import { nasFetch } from '../nas-fetch';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -99,7 +99,7 @@ const readError = async (res: Response): Promise<string> => {
 };
 
 export const fetchPlaylistInfo = async (url: string): Promise<PlaylistSource> => {
-    const res = await fetch(`${NAS_API_BASE}/playlist/info?url=${encodeURIComponent(url)}`);
+    const res = await nasFetch(`/playlist/info?url=${encodeURIComponent(url)}`);
     if (!res.ok) throw new Error(await readError(res));
     return res.json();
 };
@@ -112,7 +112,7 @@ export const startPlaylistImport = async (
     url: string,
     name?: string,
 ): Promise<PlaylistImportStartResponse> => {
-    const res = await fetch(`${NAS_API_BASE}/playlist/import`, {
+    const res = await nasFetch(`/playlist/import`, {
         body: JSON.stringify(name ? { name, url } : { url }),
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',
@@ -122,13 +122,13 @@ export const startPlaylistImport = async (
 };
 
 export const fetchPlaylistImportJob = async (jobId: string): Promise<PlaylistImportJob> => {
-    const res = await fetch(`${NAS_API_BASE}/playlist/import/${jobId}`);
+    const res = await nasFetch(`/playlist/import/${jobId}`);
     if (!res.ok) throw new Error(await readError(res));
     return res.json();
 };
 
 export const fetchPlaylistImports = async (): Promise<PlaylistImportJob[]> => {
-    const res = await fetch(`${NAS_API_BASE}/playlist/imports`);
+    const res = await nasFetch(`/playlist/imports`);
     if (!res.ok) throw new Error(await readError(res));
     const data = await res.json();
     return Array.isArray(data) ? data : [];

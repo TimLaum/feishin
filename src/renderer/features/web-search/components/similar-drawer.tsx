@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 
 import { useAudioPreview } from '../hooks/use-audio-preview';
 import { useOpenArtist } from '../hooks/use-open-artist';
-import { NAS_API_BASE } from '../store/web-search-download-store';
+import { nasFetch } from '../nas-fetch';
 import { SimilarSeed, useWebSearchUIStore } from '../store/web-search-ui-store';
 import { AlbumRow, AlbumSearchResult, ResultRow, WebSearchResult } from './web-search-content';
 
@@ -44,7 +44,7 @@ const fetchSimilar = async (seed: SimilarSeed): Promise<SimilarResponse> => {
         if (seed.title) params.set('title', seed.title);
     }
     params.set('limit', '12');
-    const res = await fetch(`${NAS_API_BASE}/similar?${params.toString()}`);
+    const res = await nasFetch(`/similar?${params.toString()}`);
     if (!res.ok) throw new Error(`Similar lookup failed: ${res.statusText}`);
     return res.json();
 };
