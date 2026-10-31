@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate, useParams } from 'react-router';
 
 import { ListContext, useListContext } from '/@/renderer/context/list-context';
+import { OfflineCollectionGate } from '/@/renderer/features/offline/components/offline-collection-gate';
 import { playlistsQueries } from '/@/renderer/features/playlists/api/playlists-api';
 import { ClientSideSongFilters } from '/@/renderer/features/playlists/components/client-side-song-filters';
 import { PlaylistDetailSongListContent } from '/@/renderer/features/playlists/components/playlist-detail-song-list-content';
@@ -302,7 +303,9 @@ const PlaylistDetailSongListRouteWithBoundary = () => {
 
     return (
         <PageErrorBoundary>
-            <PlaylistDetailSongListRoute key={playlistId} />
+            <OfflineCollectionGate kind="playlist" paramName="playlistId">
+                <PlaylistDetailSongListRoute key={playlistId} />
+            </OfflineCollectionGate>
         </PageErrorBoundary>
     );
 };

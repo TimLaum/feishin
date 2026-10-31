@@ -4,9 +4,14 @@ import { nanoid } from 'nanoid/non-secure';
 import { createContext, useCallback, useContext, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import i18n from '/@/i18n/i18n';
 import { queryKeys } from '/@/renderer/api/query-keys';
 import { albumQueries } from '/@/renderer/features/albums/api/album-api';
 import { artistsQueries } from '/@/renderer/features/artists/api/artists-api';
+import {
+    filterOfflineAvailable,
+    isOfflineActive,
+} from '/@/renderer/features/offline/store/offline-store';
 import {
     filterSongsByPlayerFilters,
     getAlbumArtistSongsById,
@@ -167,6 +172,21 @@ const inferPlaylistContextFromUrl = (): null | string => {
     return match ? match[1] : null;
 };
 
+/**
+ * Hors connexion, la file ne doit contenir que des titres téléchargés : on les
+ * écarte à l'ajout plutôt que de les sauter un par un pendant la lecture.
+ */
+const applyOfflineFilter = <T extends { _serverId: string; id: string }>(songs: T[]): T[] => {
+    if (!isOfflineActive()) return songs;
+
+    const filtered = filterOfflineAvailable(songs);
+    if (filtered.length === 0 && songs.length > 0) {
+        toast.warn({ message: i18n.t('page.offline.nothingDownloadedOffline') });
+    }
+
+    return filtered;
+};
+
 // Stamps each song with the playlist it was queued from, so the sidebar highlight
 // can be derived from whichever song is currently playing (see useCurrentPlaylistContextId).
 const tagPlaylistContext = (songs: Song[], contextPlaylistId: string): Song[] =>
@@ -273,7 +293,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
             skipConfirmation?: boolean,
         ) => {
             const filters = useSettingsStore.getState().playback.filters;
-            let filteredData = filterSongsByPlayerFilters(data, filters);
+            let filteredData = applyOfflineFilter(filterSongsByPlayerFilters(data, filters));
             const resolvedContextId =
                 contextPlaylistId ??
                 (isReplaceQueueType(type) ? inferPlaylistContextFromUrl() : null);
@@ -383,7 +403,9 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
                 }
 
                 const filters = useSettingsStore.getState().playback.filters;
-                let filteredSongs = filterSongsByPlayerFilters(sortedSongs, filters);
+                let filteredSongs = applyOfflineFilter(
+                    filterSongsByPlayerFilters(sortedSongs, filters),
+                );
 
                 if (options?.filter) {
                     filteredSongs = filteredSongs.filter(options.filter);

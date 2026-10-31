@@ -9,6 +9,7 @@ import { queryKeys } from '/@/renderer/api/query-keys';
 import { albumQueries } from '/@/renderer/features/albums/api/album-api';
 import { JoinedArtists } from '/@/renderer/features/albums/components/joined-artists';
 import { ContextMenuController } from '/@/renderer/features/context-menu/context-menu-controller';
+import { OfflineDownloadToggle } from '/@/renderer/features/offline/components/offline-download-toggle';
 import { usePlayer } from '/@/renderer/features/player/context/player-context';
 import {
     LibraryHeader,
@@ -282,6 +283,14 @@ export const AlbumDetailHeader = forwardRef<HTMLDivElement>((_props, ref) => {
                     </Group>
                     <LibraryHeaderMenu
                         favorite={detailQuery?.data?.userFavorite}
+                        offlineToggle={
+                            <OfflineDownloadToggle
+                                imageUrl={detailQuery?.data?.imageUrl}
+                                itemId={detailQuery?.data?.id}
+                                kind="album"
+                                name={detailQuery?.data?.name ?? ''}
+                            />
+                        }
                         onAlbumRadio={handleAlbumRadio}
                         onFavorite={handleFavorite}
                         onMore={handleMoreOptions}

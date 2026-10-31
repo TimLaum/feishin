@@ -12,6 +12,7 @@ import {
     TableColumnContainer,
 } from '/@/renderer/components/item-list/item-table-list/item-table-list-column';
 import { useIsActiveRow } from '/@/renderer/components/item-list/item-table-list/item-table-list-context';
+import { OfflineIndicator } from '/@/renderer/features/offline/components/offline-indicator';
 import { ExplicitIndicator } from '/@/shared/components/explicit-indicator/explicit-indicator';
 import { Text } from '/@/shared/components/text/text';
 import { LibraryItem, QueueSong } from '/@/shared/types/domain-types';
@@ -114,6 +115,7 @@ function QueueSongTitleColumn(props: ItemTableListInnerColumn) {
                     isNoSelect
                     {...titleLinkProps}
                 >
+                    <OfflineIndicator serverId={song?._serverId} songId={song?.id} />
                     <ExplicitIndicator explicitStatus={song?.explicitStatus} />
                     {row}
                     {song?.trackSubtitle && props.itemType !== LibraryItem.QUEUE_SONG && (

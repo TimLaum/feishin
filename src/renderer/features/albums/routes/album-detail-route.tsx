@@ -7,6 +7,7 @@ import { NativeScrollArea } from '/@/renderer/components/native-scroll-area/nati
 import { albumQueries } from '/@/renderer/features/albums/api/album-api';
 import { AlbumDetailContent } from '/@/renderer/features/albums/components/album-detail-content';
 import { AlbumDetailHeader } from '/@/renderer/features/albums/components/album-detail-header';
+import { OfflineCollectionGate } from '/@/renderer/features/offline/components/offline-collection-gate';
 import { AnimatedPage } from '/@/renderer/features/shared/components/animated-page';
 import {
     LibraryBackgroundImage,
@@ -91,7 +92,9 @@ const AlbumDetailRoute = () => {
 const AlbumDetailRouteWithBoundary = () => {
     return (
         <PageErrorBoundary>
-            <AlbumDetailRoute />
+            <OfflineCollectionGate kind="album" paramName="albumId">
+                <AlbumDetailRoute />
+            </OfflineCollectionGate>
         </PageErrorBoundary>
     );
 };

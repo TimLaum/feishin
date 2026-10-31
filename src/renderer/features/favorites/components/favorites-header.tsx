@@ -138,9 +138,7 @@ export const FavoritesHeader = ({ itemType }: FavoritesHeaderProps) => {
                         </LibraryHeaderBar.Badge>
                     </LibraryHeaderBar>
                     <Group>
-                        {itemType === LibraryItem.SONG && (
-                            <DownloadOfflineButton listQuery={playQuery} />
-                        )}
+                        {itemType === LibraryItem.SONG && <DownloadOfflineButton />}
                         <ListSearchInput />
                     </Group>
                 </Flex>

@@ -5,6 +5,8 @@ import styles from './default-layout.module.css';
 
 import { ContextMenuController } from '/@/renderer/features/context-menu/context-menu-controller';
 import { OfflineDownloadManager } from '/@/renderer/features/offline/components/offline-download-manager';
+import { OfflineModeEffect } from '/@/renderer/features/offline/components/offline-mode-effect';
+import { OfflineSyncManager } from '/@/renderer/features/offline/components/offline-sync-manager';
 import { OfflineAutoSkipHook } from '/@/renderer/features/offline/hooks/use-offline-auto-skip';
 import { DownloadManager } from '/@/renderer/features/web-search/components/download-manager';
 import { PlaylistImportManager } from '/@/renderer/features/web-search/components/playlist-import-manager';
@@ -48,6 +50,8 @@ export const DefaultLayout = ({ shell }: DefaultLayoutProps) => {
             <PlaylistImportManager />
             <SimilarDrawer />
             <OfflineDownloadManager />
+            <OfflineSyncManager />
+            <OfflineModeEffect />
             <OfflineAutoSkipHook />
         </>
     );

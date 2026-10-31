@@ -1,6 +1,7 @@
 import isElectron from 'is-electron';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
+import i18n from '/@/i18n/i18n';
 import { api } from '/@/renderer/api';
 import {
     offlineActions,
@@ -19,9 +20,17 @@ const offlineApi = isElectron() ? window.api.offlineDownloads : null;
  */
 export const OfflineDownloadManager = () => {
     const entries = useOfflineStoreBase((s) => s.entries);
+    const pendingDeletions = useOfflineStoreBase((s) => s.pendingDeletions);
+    const settings = useOfflineStoreBase((s) => s.settings);
     // Clés en cours de traitement dans CE composant (garde anti-doublon,
     // couvre l'intervalle entre le déclenchement et la mise à jour du store)
     const inFlightRef = useRef<Set<string>>(new Set());
+    const quotaToastRef = useRef(false);
+
+    const totalSize = useMemo(
+        () => Object.values(entries).reduce((total, entry) => total + (entry.size || 0), 0),
+        [entries],
+    );
 
     // Init après hydratation : reprise des téléchargements interrompus
     // + vérification que les fichiers marqués "done" existent toujours
@@ -72,9 +81,31 @@ export const OfflineDownloadManager = () => {
         return unsubscribe;
     }, []);
 
+    // Fichiers devenus orphelins (désabonnement, titre retiré d'une playlist,
+    // suppression manuelle) : effacement disque puis vidage de la file
+    useEffect(() => {
+        if (!offlineApi || pendingDeletions.length === 0) return;
+
+        const paths = [...pendingDeletions];
+        offlineApi
+            .remove(paths)
+            .catch(() => {})
+            .finally(() => offlineActions().drainDeletions(paths));
+    }, [pendingDeletions]);
+
     // Démarre les téléchargements en attente (concurrence limitée)
     useEffect(() => {
         if (!offlineApi) return;
+
+        // Limite de stockage : on laisse finir ce qui tourne, on n'en démarre plus
+        if (settings.maxSizeBytes > 0 && totalSize >= settings.maxSizeBytes) {
+            if (!quotaToastRef.current) {
+                quotaToastRef.current = true;
+                toast.warn({ message: i18n.t('page.offline.maxSizeReached') });
+            }
+            return;
+        }
+        quotaToastRef.current = false;
 
         const downloading = Object.values(entries).filter((e) => e.status === 'downloading').length;
         const slots = MAX_CONCURRENT_DOWNLOADS - downloading - inFlightRef.current.size;
@@ -95,17 +126,31 @@ export const OfflineDownloadManager = () => {
                 try {
                     markDownloading(key);
 
-                    const url = api.controller.getDownloadUrl({
-                        apiClientProps: { serverId: song._serverId },
-                        query: { id: song.id },
-                    });
+                    // Qualité "originale" : le fichier tel quel. Sinon on demande au
+                    // serveur un flux transcodé, bien plus léger sur le disque.
+                    const isTranscoded = settings.quality === 'transcoded';
+
+                    const url = isTranscoded
+                        ? await api.controller.getStreamUrl({
+                              apiClientProps: { serverId: song._serverId },
+                              query: {
+                                  bitrate: settings.bitrate,
+                                  format: settings.format,
+                                  id: song.id,
+                                  transcode: true,
+                              },
+                          })
+                        : api.controller.getDownloadUrl({
+                              apiClientProps: { serverId: song._serverId },
+                              query: { id: song.id },
+                          });
 
                     if (!url) {
                         throw new Error('Unable to resolve download URL');
                     }
 
                     const result = await offlineApi.download({
-                        container: song.container,
+                        container: isTranscoded ? settings.format : song.container,
                         coverUrl: song.imageUrl,
                         key: offlineKey(song._serverId, song.id),
                         url,
@@ -131,7 +176,7 @@ export const OfflineDownloadManager = () => {
 
             run();
         }
-    }, [entries]);
+    }, [entries, settings, totalSize]);
 
     return null;
 };

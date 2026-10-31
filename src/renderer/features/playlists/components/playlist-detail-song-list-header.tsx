@@ -6,6 +6,7 @@ import { useLocation, useParams } from 'react-router';
 import { useItemImageUrl } from '/@/renderer/components/item-image/item-image';
 import { PageHeader } from '/@/renderer/components/page-header/page-header';
 import { useListContext } from '/@/renderer/context/list-context';
+import { OfflineDownloadToggle } from '/@/renderer/features/offline/components/offline-download-toggle';
 import { usePlayer } from '/@/renderer/features/player/context/player-context';
 import { playlistsQueries } from '/@/renderer/features/playlists/api/playlists-api';
 import { PlaylistDetailSongListHeaderFilters } from '/@/renderer/features/playlists/components/playlist-detail-song-list-header-filters';
@@ -237,6 +238,14 @@ export const PlaylistDetailSongListHeader = ({
                             </Spoiler>
                         ) : null}
                         <LibraryHeaderMenu
+                            offlineToggle={
+                                <OfflineDownloadToggle
+                                    imageUrl={detailQuery?.data?.imageUrl}
+                                    itemId={playlistId}
+                                    kind="playlist"
+                                    name={detailQuery?.data?.name ?? ''}
+                                />
+                            }
                             onPlay={(type) => handlePlay(type)}
                             onShuffle={() => handlePlay(Play.SHUFFLE)}
                         />

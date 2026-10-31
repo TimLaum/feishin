@@ -38,7 +38,7 @@ export const PlaylistContextMenu = ({ items, type }: PlaylistContextMenuProps) =
             <PlayAction ids={ids} itemType={LibraryItem.PLAYLIST} />
             <ContextMenu.Divider />
             <AddToPlaylistAction items={ids} itemType={LibraryItem.PLAYLIST} />
-            <DownloadOfflineAction ids={ids} itemType={LibraryItem.PLAYLIST} />
+            <DownloadOfflineAction ids={ids} items={items} itemType={LibraryItem.PLAYLIST} />
             <ContextMenu.Divider />
             <EditPlaylistAction disabled={!canEditPlaylist} items={items} />
             <DeletePlaylistAction disabled={!canDeletePlaylist} items={items} />

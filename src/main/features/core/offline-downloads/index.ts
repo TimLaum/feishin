@@ -1,8 +1,11 @@
+import type { IncomingMessage } from 'electron';
+
 import { app, ipcMain, net, shell } from 'electron';
 import { createReadStream, createWriteStream } from 'fs';
 import { mkdir, rm, stat } from 'fs/promises';
-import { extname, join, resolve } from 'path';
+import { extname, join, resolve, sep } from 'path';
 import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 
 /**
  * Téléchargement local de morceaux pour l'écoute hors ligne.
@@ -32,8 +35,10 @@ const sanitizeSegment = (segment: string): string => {
 };
 
 const resolveSafe = (relPath: string): null | string => {
-    const filePath = resolve(OFFLINE_DIR, relPath);
-    if (!filePath.startsWith(resolve(OFFLINE_DIR))) {
+    const root = resolve(OFFLINE_DIR);
+    const filePath = resolve(root, relPath);
+    // startsWith seul laisserait passer un dossier frere du type "offline-audio-x"
+    if (filePath !== root && !filePath.startsWith(root + sep)) {
         return null;
     }
     return filePath;
@@ -55,51 +60,76 @@ interface OfflineDownloadResult {
     size: number;
 }
 
+/**
+ * `net.fetch` convertit les en-têtes de la réponse en objet `Headers`, ce qui lève
+ * une TypeError ("Cannot convert argument to a ByteString") dès qu'un en-tête
+ * contient un caractère non-ASCII — typiquement le
+ * `Content-Disposition: attachment; filename="…"` d'un titre accentué ou dans un
+ * alphabet non latin. L'exception est émise depuis un listener interne d'Electron,
+ * donc impossible à rattraper : elle fait tomber le process principal.
+ * `net.request` expose les en-têtes bruts et n'a pas ce défaut.
+ */
+const requestStream = (url: string): Promise<IncomingMessage> => {
+    return new Promise((res, rej) => {
+        const request = net.request(url);
+        request.on('response', res);
+        request.on('error', rej);
+        request.end();
+    });
+};
+
+const headerValue = (response: IncomingMessage, name: string): string => {
+    const value = response.headers[name];
+    if (Array.isArray(value)) return value[0] ?? '';
+    return value ?? '';
+};
+
+// Electron implémente l'interface Readable sur IncomingMessage sans la déclarer
+// dans ses typings.
+const responseBody = (response: IncomingMessage): Readable => {
+    return response as unknown as Readable;
+};
+
+const readBody = async (response: IncomingMessage): Promise<Buffer> => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of responseBody(response)) {
+        chunks.push(chunk as Buffer);
+    }
+    return Buffer.concat(chunks);
+};
+
 const downloadToFile = async (
     url: string,
     filePath: string,
     onProgress?: (received: number, total: number) => void,
 ): Promise<number> => {
-    const response = await net.fetch(url);
+    const response = await requestStream(url);
+    const body = responseBody(response);
 
-    if (!response.ok || !response.body) {
-        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    if (response.statusCode >= 400) {
+        body.destroy();
+        throw new Error(`HTTP ${response.statusCode} ${response.statusMessage}`);
     }
 
-    const total = Number(response.headers.get('content-length')) || 0;
-    const writeStream = createWriteStream(filePath);
-    const reader = response.body.getReader();
+    const total = Number(headerValue(response, 'content-length')) || 0;
 
     let received = 0;
     let lastReport = 0;
 
-    try {
-        for (;;) {
-            const { done, value } = await reader.read();
-            if (done) break;
+    body.on('data', (chunk: Buffer) => {
+        received += chunk.length;
 
-            received += value.byteLength;
-
-            const canContinue = writeStream.write(Buffer.from(value));
-            if (!canContinue) {
-                await new Promise<void>((res) => writeStream.once('drain', res));
-            }
-
-            const now = Date.now();
-            if (onProgress && now - lastReport > 250) {
-                lastReport = now;
-                onProgress(received, total);
-            }
+        const now = Date.now();
+        if (onProgress && now - lastReport > 250) {
+            lastReport = now;
+            onProgress(received, total);
         }
+    });
 
-        await new Promise<void>((res, rej) => {
-            writeStream.end(() => res());
-            writeStream.on('error', rej);
-        });
-
+    try {
+        await pipeline(body, createWriteStream(filePath));
         return received;
     } catch (err) {
-        writeStream.destroy();
         await rm(filePath, { force: true }).catch(() => {});
         throw err;
     }
@@ -142,12 +172,12 @@ ipcMain.handle(
         let coverRelPath: null | string = null;
         if (args.coverUrl) {
             try {
-                const coverResponse = await net.fetch(args.coverUrl);
-                if (coverResponse.ok) {
-                    const contentType = coverResponse.headers.get('content-type') ?? '';
+                const coverResponse = await requestStream(args.coverUrl);
+                if (coverResponse.statusCode < 400) {
+                    const contentType = headerValue(coverResponse, 'content-type');
                     const coverExt = contentType.includes('png') ? 'png' : 'jpg';
                     const coverPath = join(targetDir, `${songId}.${coverExt}`);
-                    const buffer = Buffer.from(await coverResponse.arrayBuffer());
+                    const buffer = await readBody(coverResponse);
                     await new Promise<void>((res, rej) => {
                         const ws = createWriteStream(coverPath);
                         ws.on('error', rej);
@@ -211,7 +241,15 @@ export const OFFLINE_PROTOCOL_PREFIX = 'feishin://offline/';
  */
 export const handleOfflineProtocolRequest = async (request: Request): Promise<Response> => {
     const encoded = request.url.slice(OFFLINE_PROTOCOL_PREFIX.length).split('?')[0];
-    const relPath = decodeURIComponent(encoded);
+
+    let relPath: string;
+    try {
+        relPath = decodeURIComponent(encoded);
+    } catch {
+        // decodeURIComponent leve sur une sequence % malformee
+        return new Response(null, { status: 400, statusText: 'Bad Request' });
+    }
+
     const filePath = resolveSafe(relPath);
 
     if (!filePath) {

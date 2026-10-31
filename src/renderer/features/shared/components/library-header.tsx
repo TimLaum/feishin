@@ -338,6 +338,8 @@ export const calculateTitleSize = (title: string) => {
 
 interface LibraryHeaderMenuProps {
     favorite?: boolean;
+    // Bouton de téléchargement hors ligne, fourni par la page
+    offlineToggle?: ReactNode;
     onAlbumRadio?: () => void;
     onArtistRadio?: () => void;
     onFavorite?: (e: React.MouseEvent<HTMLButtonElement>) => void;
@@ -350,6 +352,7 @@ interface LibraryHeaderMenuProps {
 
 export const LibraryHeaderMenu = ({
     favorite,
+    offlineToggle,
     onAlbumRadio,
     onArtistRadio,
     onFavorite,
@@ -436,6 +439,7 @@ export const LibraryHeaderMenu = ({
                 )}
             </Group>
             <Group gap="sm" wrap="nowrap">
+                {offlineToggle}
                 {onRating && (
                     <Rating
                         onChange={onRating}
