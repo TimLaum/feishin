@@ -70,6 +70,7 @@ const deepMergeIntoState = <T extends Record<string, any>>(
 
 const HomeItemSchema = z.enum([
     'genres',
+    'mixes',
     'mostPlayed',
     'playlists',
     'random',
@@ -976,6 +977,7 @@ export enum GenreTarget {
 
 export enum HomeItem {
     GENRES = 'genres',
+    MIXES = 'mixes',
     MOST_PLAYED = 'mostPlayed',
     PLAYLISTS = 'playlists',
     RANDOM = 'random',
@@ -1195,7 +1197,7 @@ export const sidebarItems: SidebarItemType[] = [
         route: AppRoute.LIBRARY_SONGS,
     },
     {
-        disabled: false,
+        disabled: true,
         id: 'Artists',
         label: i18n.t('page.sidebar.albumArtists'),
         route: AppRoute.LIBRARY_ALBUM_ARTISTS,
@@ -1213,7 +1215,7 @@ export const sidebarItems: SidebarItemType[] = [
         route: AppRoute.LIBRARY_GENRES,
     },
     {
-        disabled: false,
+        disabled: true,
         id: 'Folders',
         label: i18n.t('page.sidebar.folders'),
         route: AppRoute.LIBRARY_FOLDERS,
@@ -1231,7 +1233,7 @@ export const sidebarItems: SidebarItemType[] = [
         route: '',
     },
     {
-        disabled: false,
+        disabled: true,
         id: 'Radio',
         label: i18n.t('page.sidebar.radio'),
         route: AppRoute.RADIO,
@@ -1263,6 +1265,7 @@ export const sidebarItems: SidebarItemType[] = [
 ];
 
 const defaultHomeItemOrder: HomeItem[] = [
+    HomeItem.MIXES,
     HomeItem.GENRES,
     HomeItem.RANDOM,
     HomeItem.RECENTLY_ADDED,
@@ -2949,10 +2952,23 @@ export const useSettingsStore = createWithEqualityFn<SettingsSlice>()(
                     });
                 }
 
+                if (version < 35) {
+                    // Fork : mixes quotidiens (playlists « Mix … » générées sur le NAS) en tête de l'accueil
+                    if (!state.general.homeItems.some((item) => item.id === HomeItem.MIXES)) {
+                        state.general.homeItems.unshift({ disabled: false, id: HomeItem.MIXES });
+                    }
+                    // Fork : onglets jamais utilisés masqués (réactivables dans les paramètres)
+                    for (const item of state.general.sidebarItems) {
+                        if (['Artists', 'Folders', 'Radio'].includes(item.id)) {
+                            item.disabled = true;
+                        }
+                    }
+                }
+
                 return persistedState;
             },
             name: 'store_settings',
-            version: 34,
+            version: 35,
         },
     ),
 );

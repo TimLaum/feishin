@@ -25,24 +25,40 @@ import { ItemListKey } from '/@/shared/types/types';
 interface PlaylistCarouselProps {
     containerQuery?: ReturnType<typeof useGridCarouselContainerQuery>;
     enableRefresh?: boolean;
+    itemLimit?: number;
     query?: Partial<Omit<PlaylistListQuery, 'startIndex'>>;
+    // Filtre/tri côté client (l'API Subsonic ne filtre pas les playlists par nom)
+    select?: (playlists: Playlist[]) => Playlist[];
     title: React.ReactNode | string;
 }
 
 const BasePlaylistInfiniteCarousel = (props: PlaylistCarouselProps & { rows: DataRow[] }) => {
-    const { containerQuery, enableRefresh, query: additionalQuery, title } = props;
+    const {
+        containerQuery,
+        enableRefresh,
+        itemLimit = 20,
+        query: additionalQuery,
+        select,
+        title,
+    } = props;
     const {
         data: playlists,
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
         refetch,
-    } = usePlaylistListInfinite(PlaylistListSort.UPDATED_AT, SortOrder.DESC, 20, additionalQuery);
+    } = usePlaylistListInfinite(
+        PlaylistListSort.UPDATED_AT,
+        SortOrder.DESC,
+        itemLimit,
+        additionalQuery,
+    );
 
     const controls = useDefaultItemListControls();
 
     const cards = useMemo(() => {
-        const allItems = playlists?.pages.flatMap((page: PlaylistListResponse) => page.items) || [];
+        const fetched = playlists?.pages.flatMap((page: PlaylistListResponse) => page.items) || [];
+        const allItems = select ? select(fetched) : fetched;
 
         return allItems.map((playlist: Playlist) => ({
             content: (
@@ -60,7 +76,7 @@ const BasePlaylistInfiniteCarousel = (props: PlaylistCarouselProps & { rows: Dat
             ),
             id: playlist.id,
         }));
-    }, [playlists, controls, props.rows]);
+    }, [playlists, select, controls, props.rows]);
 
     const handleNextPage = useCallback(() => {}, []);
 
@@ -70,9 +86,7 @@ const BasePlaylistInfiniteCarousel = (props: PlaylistCarouselProps & { rows: Dat
         refetch();
     }, [refetch]);
 
-    const firstPageItems = playlists?.pages[0]?.items || [];
-
-    if (firstPageItems.length === 0) {
+    if (cards.length === 0) {
         return null;
     }
 

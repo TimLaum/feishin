@@ -27,11 +27,24 @@ import { Stack } from '/@/shared/components/stack/stack';
 import {
     AlbumListSort,
     LibraryItem,
+    Playlist,
     ServerType,
     SongListSort,
     SortOrder,
 } from '/@/shared/types/domain-types';
 import { Platform } from '/@/shared/types/types';
+
+// Fork : playlists générées chaque jour par mixes.py sur le NAS (« Mix du jour » en premier)
+const selectMixes = (playlists: Playlist[]) =>
+    playlists
+        .filter((playlist) => playlist.name.startsWith('Mix '))
+        .sort((a, b) =>
+            a.name === 'Mix du jour'
+                ? -1
+                : b.name === 'Mix du jour'
+                  ? 1
+                  : a.name.localeCompare(b.name, 'fr'),
+        );
 
 const HomeRoute = () => {
     const { t } = useTranslation();
@@ -90,7 +103,12 @@ const HomeRoute = () => {
     const sortedItems = homeItems.filter((item) => !item.disabled);
 
     const sortedCarousel = sortedItems
-        .filter((item) => item.id !== HomeItem.GENRES && item.id !== HomeItem.PLAYLISTS)
+        .filter(
+            (item) =>
+                item.id !== HomeItem.GENRES &&
+                item.id !== HomeItem.PLAYLISTS &&
+                item.id !== HomeItem.MIXES,
+        )
         .map((item) => ({
             ...carousels[item.id],
             uniqueId: item.id,
@@ -127,6 +145,19 @@ const HomeRoute = () => {
                         {sortedItems.map((item) => {
                             if (item.id === HomeItem.GENRES) {
                                 return <FeaturedGenres key="featured-genres" />;
+                            }
+
+                            if (item.id === HomeItem.MIXES) {
+                                return (
+                                    <PlaylistInfiniteCarousel
+                                        containerQuery={containerQuery}
+                                        enableRefresh
+                                        itemLimit={200}
+                                        key="home-mixes"
+                                        select={selectMixes}
+                                        title={t('page.home.mixes')}
+                                    />
+                                );
                             }
 
                             if (item.id === HomeItem.PLAYLISTS) {

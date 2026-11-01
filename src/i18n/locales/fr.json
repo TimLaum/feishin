@@ -417,6 +417,7 @@
             "rescanLibrary": "Re-analyser la bibliothèque"
         },
         "home": {
+            "mixes": "Tes mixes",
             "mostPlayed": "Les plus joués",
             "newlyAdded": "Ajoutés récemment",
             "explore": "Explorer depuis la bibliothèque",

@@ -660,6 +660,7 @@
         "home": {
             "explore": "Explore from your library",
             "genres": "$t(entity.genre, {\"count\": 2})",
+            "mixes": "Your mixes",
             "mostPlayed": "Most Played",
             "newlyAdded": "Newly added releases",
             "recentlyPlayed": "Recently played",
