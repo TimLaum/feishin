@@ -4,6 +4,8 @@ import { useSearchParams } from 'react-router';
 import { ListContext } from '/@/renderer/context/list-context';
 import { FavoritesContent } from '/@/renderer/features/favorites/components/favorites-content';
 import { FavoritesHeader } from '/@/renderer/features/favorites/components/favorites-header';
+import { OfflineCollectionGate } from '/@/renderer/features/offline/components/offline-collection-gate';
+import { FAVORITES_ITEM_ID } from '/@/renderer/features/offline/store/offline-store';
 import { AnimatedPage } from '/@/renderer/features/shared/components/animated-page';
 import { PageErrorBoundary } from '/@/renderer/features/shared/components/page-error-boundary';
 import { LibraryItem } from '/@/shared/types/domain-types';
@@ -65,7 +67,9 @@ const FavoritesRoute = () => {
 const FavoritesRouteWithBoundary = () => {
     return (
         <PageErrorBoundary>
-            <FavoritesRoute />
+            <OfflineCollectionGate itemId={FAVORITES_ITEM_ID} kind="favorites">
+                <FavoritesRoute />
+            </OfflineCollectionGate>
         </PageErrorBoundary>
     );
 };

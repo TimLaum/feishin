@@ -146,3 +146,17 @@
     min-width: 3rem;
     height: 3rem;
 }
+
+.offline-row {
+    display: flex;
+    gap: var(--theme-spacing-sm);
+    align-items: center;
+    padding: var(--theme-spacing-sm) var(--theme-spacing-md);
+    color: inherit;
+    text-decoration: none;
+    border-radius: var(--theme-radius-md);
+}
+
+.offline-row:hover {
+    background-color: var(--theme-colors-surface);
+}

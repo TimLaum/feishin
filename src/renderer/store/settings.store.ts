@@ -1256,12 +1256,6 @@ export const sidebarItems: SidebarItemType[] = [
         label: i18n.t('page.sidebar.newReleases'),
         route: AppRoute.NEW_RELEASES,
     },
-    {
-        disabled: false,
-        id: 'Downloads',
-        label: i18n.t('page.sidebar.downloads'),
-        route: AppRoute.DOWNLOADS,
-    },
 ];
 
 const defaultHomeItemOrder: HomeItem[] = [
@@ -2965,10 +2959,18 @@ export const useSettingsStore = createWithEqualityFn<SettingsSlice>()(
                     }
                 }
 
+                if (version < 36) {
+                    // Fork : l'onglet Téléchargements disparaît (réglages dans Paramètres,
+                    // téléchargés visibles sur l'accueil et dans les playlists hors connexion)
+                    state.general.sidebarItems = state.general.sidebarItems.filter(
+                        (item) => item.id !== 'Downloads',
+                    );
+                }
+
                 return persistedState;
             },
             name: 'store_settings',
-            version: 35,
+            version: 36,
         },
     ),
 );

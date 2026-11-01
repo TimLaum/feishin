@@ -7,6 +7,7 @@ import {
     offlineActions,
     offlineKey,
     useOfflineStoreBase,
+    useServerUnreachable,
 } from '/@/renderer/features/offline/store/offline-store';
 import { toast } from '/@/shared/components/toast/toast';
 
@@ -22,6 +23,7 @@ export const OfflineDownloadManager = () => {
     const entries = useOfflineStoreBase((s) => s.entries);
     const pendingDeletions = useOfflineStoreBase((s) => s.pendingDeletions);
     const settings = useOfflineStoreBase((s) => s.settings);
+    const serverUnreachable = useServerUnreachable();
     // Clés en cours de traitement dans CE composant (garde anti-doublon,
     // couvre l'intervalle entre le déclenchement et la mise à jour du store)
     const inFlightRef = useRef<Set<string>>(new Set());
@@ -93,9 +95,22 @@ export const OfflineDownloadManager = () => {
             .finally(() => offlineActions().drainDeletions(paths));
     }, [pendingDeletions]);
 
+    // Retour du serveur : les titres tombés en erreur pendant la coupure repartent
+    const wasUnreachableRef = useRef(serverUnreachable);
+    useEffect(() => {
+        if (wasUnreachableRef.current && !serverUnreachable) {
+            const { requeue } = offlineActions();
+            for (const [key, entry] of Object.entries(useOfflineStoreBase.getState().entries)) {
+                if (entry.status === 'error') requeue(key);
+            }
+        }
+        wasUnreachableRef.current = serverUnreachable;
+    }, [serverUnreachable]);
+
     // Démarre les téléchargements en attente (concurrence limitée)
     useEffect(() => {
-        if (!offlineApi) return;
+        // Serveur hors d'atteinte : la file attend son retour au lieu d'échouer en boucle
+        if (!offlineApi || serverUnreachable || !navigator.onLine) return;
 
         // Limite de stockage : on laisse finir ce qui tourne, on n'en démarre plus
         if (settings.maxSizeBytes > 0 && totalSize >= settings.maxSizeBytes) {
@@ -165,10 +180,13 @@ export const OfflineDownloadManager = () => {
                 } catch (err) {
                     const message = err instanceof Error ? err.message : 'Download failed';
                     markError(key, message);
-                    toast.error({
-                        message: `${song.name} — ${message}`,
-                        title: 'Offline download failed',
-                    });
+                    // Coupure en cours de route : pas d'avalanche de toasts, la reprise est auto
+                    if (navigator.onLine && !useOfflineStoreBase.getState().serverUnreachable) {
+                        toast.error({
+                            message: `${song.name} - ${message}`,
+                            title: i18n.t('page.offline.downloadFailed'),
+                        });
+                    }
                 } finally {
                     inFlightRef.current.delete(key);
                 }
@@ -176,7 +194,7 @@ export const OfflineDownloadManager = () => {
 
             run();
         }
-    }, [entries, settings, totalSize]);
+    }, [entries, serverUnreachable, settings, totalSize]);
 
     return null;
 };

@@ -10,6 +10,12 @@ import styles from './sidebar-playlist-list.module.css';
 
 import { ItemImage, useItemImageUrl } from '/@/renderer/components/item-image/item-image';
 import { ContextMenuController } from '/@/renderer/features/context-menu/context-menu-controller';
+import { useIsOffline } from '/@/renderer/features/offline/hooks/use-is-offline';
+import {
+    subscriptionKey,
+    useOfflineStoreBase,
+} from '/@/renderer/features/offline/store/offline-store';
+import { collectionName, collectionPath } from '/@/renderer/features/offline/utils';
 import { usePlayer } from '/@/renderer/features/player/context/player-context';
 import { playlistsQueries } from '/@/renderer/features/playlists/api/playlists-api';
 import { openCreatePlaylistModal } from '/@/renderer/features/playlists/components/create-playlist-form';
@@ -255,6 +261,9 @@ export const PlaylistRowButton = memo(
         const serverId = useCurrentServerId();
 
         const permissions = usePermissions();
+        const isDownloaded = useOfflineStoreBase((s) =>
+            Boolean(s.subscriptions[subscriptionKey(serverId, 'playlist', item.id)]),
+        );
 
         const handlePlay = useCallback(
             (id: string, type: Play) => {
@@ -302,6 +311,7 @@ export const PlaylistRowButton = memo(
                         >
                             {name}
                         </Text>
+                        {isDownloaded && <Icon color="primary" icon="download" size="sm" />}
                         {isHovered && (
                             <ItemRowPlayControls
                                 className={clsx(styles.controls, styles.controlsCompact)}
@@ -332,6 +342,16 @@ export const PlaylistRowButton = memo(
                                     {name}
                                 </Text>
                                 <div className={styles.metadataGroup}>
+                                    {isDownloaded && (
+                                        <div
+                                            className={clsx(
+                                                styles.metadataGroupItem,
+                                                styles.metadataGroupItemNoShrink,
+                                            )}
+                                        >
+                                            <Icon color="primary" icon="download" size="sm" />
+                                        </div>
+                                    )}
                                     <div
                                         className={clsx(
                                             styles.metadataGroupItem,
@@ -382,10 +402,37 @@ export const PlaylistRowButton = memo(
     },
 );
 
+const OfflineSidebarPlaylists = () => {
+    const serverId = useCurrentServerId();
+    const subscriptions = useOfflineStoreBase((s) => s.subscriptions);
+    const playlists = useMemo(
+        () =>
+            Object.values(subscriptions)
+                .filter((sub) => sub.serverId === serverId && sub.kind === 'playlist')
+                .sort((a, b) => collectionName(a).localeCompare(collectionName(b))),
+        [serverId, subscriptions],
+    );
+
+    return (
+        <div className={styles.list}>
+            {playlists.map((sub) => (
+                <Link className={styles.offlineRow} key={sub.itemId} to={collectionPath(sub)}>
+                    <Icon color="primary" icon="download" size="sm" />
+                    <Text className={styles.compactName} fw={500} size="md">
+                        {collectionName(sub)}
+                    </Text>
+                </Link>
+            ))}
+        </div>
+    );
+};
+
 export const SidebarPlaylistList = () => {
     const player = usePlayer();
     const { t } = useTranslation();
     const server = useCurrentServer();
+    const isOffline = useIsOffline();
+    const offlineSubscriptions = useOfflineStoreBase((s) => s.subscriptions);
     const sidebarPlaylistSorting = useSidebarPlaylistSorting();
     const filterRegex = useSidebarPlaylistListFilterRegex();
 
@@ -443,6 +490,13 @@ export const SidebarPlaylistList = () => {
         const ownedPlaylistItems: Array<Playlist> = [];
 
         for (const playlist of playlistsQuery.data?.items ?? []) {
+            // Hors connexion : seules les playlists téléchargées restent jouables
+            if (
+                isOffline &&
+                !offlineSubscriptions[subscriptionKey(server.id, 'playlist', playlist.id)]
+            ) {
+                continue;
+            }
             if (!playlist.owner || playlist.owner === server.username) {
                 // Filter out playlists that match the regex
                 if (regex && regex.test(playlist.name)) {
@@ -468,7 +522,10 @@ export const SidebarPlaylistList = () => {
         return { ...base, items: newPlaylistItems };
     }, [
         handlePlayPlaylist,
+        isOffline,
+        offlineSubscriptions,
         playlistsQuery.data?.items,
+        server.id,
         server.type,
         server.username,
         sidebarPlaylistSorting,
@@ -624,6 +681,8 @@ export const SidebarPlaylistList = () => {
             </PlaylistRootAccordionControl>
             <Accordion.Panel className={styles.panel}>
                 <LoadingOverlay pos="absolute" visible={isFolderMovePending} />
+                {/* Démarrage sans serveur : la liste n'a jamais été chargée, on liste les téléchargées */}
+                {isOffline && !playlistsQuery.data && <OfflineSidebarPlaylists />}
                 <PlaylistFolderDragExpandProvider expandedSet={expandedSet} setMany={setMany}>
                     <PlaylistFolderViews
                         {...folderViewState}

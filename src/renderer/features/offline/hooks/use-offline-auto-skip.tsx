@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
+import { useIsOffline } from '/@/renderer/features/offline/hooks/use-is-offline';
 import { isSongDownloaded } from '/@/renderer/features/offline/store/offline-store';
 import { usePlayer } from '/@/renderer/features/player/context/player-context';
 import { usePlayerSong, usePlayerStatus, usePlayerStoreBase } from '/@/renderer/store';
@@ -21,20 +22,7 @@ export const OfflineAutoSkipHook = () => {
     const skipsRef = useRef(0);
     const toastShownRef = useRef(false);
 
-    const [isOnline, setIsOnline] = useState(() => navigator.onLine);
-
-    useEffect(() => {
-        const handleOnline = () => setIsOnline(true);
-        const handleOffline = () => setIsOnline(false);
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-        };
-    }, []);
+    const isOnline = !useIsOffline();
 
     useEffect(() => {
         if (isOnline) {

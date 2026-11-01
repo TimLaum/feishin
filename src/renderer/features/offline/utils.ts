@@ -1,8 +1,12 @@
+import { generatePath } from 'react-router';
+
+import i18n from '/@/i18n/i18n';
 import {
     OFFLINE_PROTOCOL_PREFIX,
     OfflineEntry,
     OfflineSubscription,
 } from '/@/renderer/features/offline/store/offline-store';
+import { AppRoute } from '/@/renderer/router/routes';
 
 export const formatBytes = (bytes: number): string => {
     if (bytes <= 0) return '—';
@@ -54,3 +58,32 @@ export const subscriptionSize = (
         0,
     );
 };
+
+/** Page de la collection (rendue en version locale hors connexion par OfflineCollectionGate). */
+export const collectionPath = (subscription: OfflineSubscription): string => {
+    switch (subscription.kind) {
+        case 'album':
+            return generatePath(AppRoute.LIBRARY_ALBUMS_DETAIL, { albumId: subscription.itemId });
+        case 'favorites':
+            return AppRoute.FAVORITES;
+        default:
+            return generatePath(AppRoute.PLAYLISTS_DETAIL_SONGS, {
+                playlistId: subscription.itemId,
+            });
+    }
+};
+
+export const collectionName = (subscription: OfflineSubscription): string =>
+    subscription.kind === 'favorites'
+        ? i18n.t('page.offline.kind_favorites')
+        : subscription.name || subscription.itemId;
+
+// Ordre façon Spotify : favoris, puis playlists, puis albums, chacun par nom
+const KIND_ORDER = { album: 2, favorites: 0, playlist: 1 } as const;
+
+export const sortCollections = (subscriptions: OfflineSubscription[]): OfflineSubscription[] =>
+    [...subscriptions].sort(
+        (a, b) =>
+            KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+            collectionName(a).localeCompare(collectionName(b)),
+    );

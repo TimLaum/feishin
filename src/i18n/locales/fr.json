@@ -493,7 +493,9 @@
             "goToAlbum": "Aller à l'$t(entity.album, {\"count\": 1})",
             "moveItems": "$t(action.moveItems)",
             "goTo": "Aller à",
-            "editMetadata": "Modifier les Métadonnées"
+            "editMetadata": "Modifier les Métadonnées",
+            "downloadOffline": "Télécharger pour l'écoute hors connexion",
+            "removeOffline": "Retirer des téléchargements"
         },
         "albumArtistList": {
             "title": "$t(entity.albumArtist, {\"count\": 2})"
@@ -590,6 +592,46 @@
         "collections": {
             "overrideExisting": "Ignorer l'existant",
             "saveAsCollection": "Enregistrer comme collection"
+        },
+        "offline": {
+            "clearAll": "Supprimer tous les téléchargements",
+            "clearAllConfirm": "Supprimer du disque tous les titres téléchargés ?",
+            "collectionAdded": "{{count}} collection(s) ajoutée(s) aux téléchargements",
+            "collectionRemoved": "{{count}} collection(s) retirée(s) des téléchargements",
+            "downloaded": "Téléchargé",
+            "downloadFailed": "Échec du téléchargement hors connexion",
+            "downloadingProgress": "Téléchargement… {{progress}} %",
+            "downloadQuality": "Qualité des téléchargements",
+            "downloadQuality_original": "Fichier d'origine",
+            "downloadQuality_transcoded": "Transcodé ({{bitrate}} kbps {{format}})",
+            "downloadQualityDescription": "Fichier d'origine, ou copie transcodée plus légère",
+            "emptyOffline": "Rien n'est téléchargé pour l'instant. En ligne, utilise le bouton de téléchargement d'une playlist, d'un album ou de tes favoris : ses titres restent écoutables sans connexion et les nouveaux sont récupérés automatiquement.",
+            "kind_album": "Album",
+            "kind_favorites": "Titres likés",
+            "kind_playlist": "Playlist",
+            "maxSize": "Limite de stockage",
+            "maxSize_unlimited": "Aucune limite",
+            "maxSizeDescription": "Une fois la limite atteinte, les téléchargements en attente patientent",
+            "maxSizeReached": "Limite de stockage atteinte : les téléchargements en attente sont suspendus",
+            "notAvailableOffline": "Pas disponible hors connexion : télécharge-la la prochaine fois que tu es en ligne.",
+            "nothingDownloadedOffline": "Rien de téléchargé ici : hors connexion, seuls les titres téléchargés sont lus",
+            "offline": "Hors connexion",
+            "offlineMode": "Mode hors connexion",
+            "offlineModeDescription": "Faire comme si le serveur était injoignable : n'afficher et ne lire que ce qui est téléchargé",
+            "openFolder": "Ouvrir le dossier",
+            "playAll": "Tout lire",
+            "queued": "En attente",
+            "remove": "Retirer",
+            "retry": "Réessayer",
+            "serverUnreachable": "Serveur injoignable",
+            "shuffleAll": "Lecture aléatoire",
+            "storage": "Stockage",
+            "storageSummary": "{{count}} titres téléchargés, {{size}}",
+            "title": "Téléchargements",
+            "trackCount_one": "{{count}} titre",
+            "trackCount_other": "{{count}} titres",
+            "transcodeFormat": "Format de transcodage",
+            "yourDownloads": "Tes téléchargements"
         }
     },
     "setting": {

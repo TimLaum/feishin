@@ -90,8 +90,6 @@ const WebSearchArtistRoute = lazy(
     () => import('/@/renderer/features/web-search/routes/web-search-artist-route'),
 );
 
-const DownloadsRoute = lazy(() => import('/@/renderer/features/offline/routes/downloads-route'));
-
 const NewReleasesRoute = lazy(
     () => import('/@/renderer/features/new-releases/routes/new-releases-route'),
 );
@@ -362,10 +360,6 @@ export const AppRouter = () => {
                                         <Route
                                             element={<WebSearchArtistRoute />}
                                             path={AppRoute.WEB_SEARCH_ARTIST}
-                                        />
-                                        <Route
-                                            element={<DownloadsRoute />}
-                                            path={AppRoute.DOWNLOADS}
                                         />
                                         <Route path={AppRoute.NEW_RELEASES}>
                                             <Route element={<NewReleasesRoute />} index />

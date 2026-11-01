@@ -8,6 +8,8 @@ import { AlbumInfiniteFeatureCarousel } from '/@/renderer/features/home/componen
 import { AlbumInfiniteSingleFeatureCarousel } from '/@/renderer/features/home/components/album-infinite-single-feature-carousel';
 import { FeaturedGenres } from '/@/renderer/features/home/components/featured-genres';
 import { PlaylistInfiniteCarousel } from '/@/renderer/features/home/components/playlist-infinite-carousel';
+import { OfflineHome } from '/@/renderer/features/offline/components/offline-home';
+import { useIsOffline } from '/@/renderer/features/offline/hooks/use-is-offline';
 import { AnimatedPage } from '/@/renderer/features/shared/components/animated-page';
 import { LibraryContainer } from '/@/renderer/features/shared/components/library-container';
 import { LibraryHeaderBar } from '/@/renderer/features/shared/components/library-header-bar';
@@ -55,6 +57,8 @@ const HomeRoute = () => {
     const homeFeatureStyle = useHomeFeatureStyle();
     const homeItems = useHomeItems();
     const containerQuery = useGridCarouselContainerQuery();
+    // Hors connexion, l'accueil ne montre que ce qui est téléchargé (façon Spotify)
+    const isOffline = useIsOffline();
 
     const isJellyfin = server?.type === ServerType.JELLYFIN;
 
@@ -136,13 +140,18 @@ const HomeRoute = () => {
                         px="2rem"
                         ref={containerQuery.ref}
                     >
-                        {homeFeature && homeFeatureStyle === HomeFeatureStyle.SINGLE && (
-                            <AlbumInfiniteSingleFeatureCarousel />
-                        )}
-                        {homeFeature && homeFeatureStyle === HomeFeatureStyle.MULTIPLE && (
-                            <AlbumInfiniteFeatureCarousel />
-                        )}
-                        {sortedItems.map((item) => {
+                        {isOffline && <OfflineHome />}
+                        {!isOffline &&
+                            homeFeature &&
+                            homeFeatureStyle === HomeFeatureStyle.SINGLE && (
+                                <AlbumInfiniteSingleFeatureCarousel />
+                            )}
+                        {!isOffline &&
+                            homeFeature &&
+                            homeFeatureStyle === HomeFeatureStyle.MULTIPLE && (
+                                <AlbumInfiniteFeatureCarousel />
+                            )}
+                        {(isOffline ? [] : sortedItems).map((item) => {
                             if (item.id === HomeItem.GENRES) {
                                 return <FeaturedGenres key="featured-genres" />;
                             }

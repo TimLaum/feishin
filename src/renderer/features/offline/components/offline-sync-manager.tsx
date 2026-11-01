@@ -5,9 +5,11 @@ import isElectron from 'is-electron';
 import { useEffect, useRef, useState } from 'react';
 
 import {
+    isOfflineActive,
     offlineActions,
     OfflineSubscription,
     useOfflineSubscriptions,
+    useServerUnreachable,
 } from '/@/renderer/features/offline/store/offline-store';
 import { fetchSongsByItemType } from '/@/renderer/features/player/context/player-context';
 import { songsQueries } from '/@/renderer/features/songs/api/songs-api';
@@ -78,6 +80,8 @@ const resolveSongs = (
 export const OfflineSyncManager = () => {
     const queryClient = useQueryClient();
     const subscriptions = useOfflineSubscriptions();
+    // Retour du serveur = re-synchro (l'effet ci-dessous dépend de cette valeur)
+    const serverUnreachable = useServerUnreachable();
 
     const runningRef = useRef<Set<string>>(new Set());
     const lastAttemptRef = useRef<Map<string, number>>(new Map());
@@ -97,7 +101,7 @@ export const OfflineSyncManager = () => {
     }, []);
 
     useEffect(() => {
-        if (!isElectron() || !navigator.onLine) return;
+        if (!isElectron() || isOfflineActive()) return;
 
         for (const [subKey, subscription] of Object.entries(subscriptions)) {
             if (runningRef.current.has(subKey)) continue;
@@ -135,7 +139,7 @@ export const OfflineSyncManager = () => {
 
             run();
         }
-    }, [subscriptions, tick, queryClient]);
+    }, [subscriptions, tick, queryClient, serverUnreachable]);
 
     return null;
 };

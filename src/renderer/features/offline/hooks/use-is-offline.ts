@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 
-import { useOfflineModeSetting } from '/@/renderer/features/offline/store/offline-store';
+import {
+    useOfflineModeSetting,
+    useServerUnreachable,
+} from '/@/renderer/features/offline/store/offline-store';
 
 /** Suit l'état réseau du navigateur. */
 export const useIsNetworkOffline = (): boolean => {
@@ -23,12 +26,13 @@ export const useIsNetworkOffline = (): boolean => {
 };
 
 /**
- * Mode hors connexion effectif : soit le réseau est tombé, soit l'utilisateur
- * l'a forcé depuis la page Téléchargements.
+ * Mode hors connexion effectif : réseau tombé, serveur injoignable, ou mode
+ * forcé par l'utilisateur (Paramètres > Téléchargements).
  */
 export const useIsOffline = (): boolean => {
     const isNetworkOffline = useIsNetworkOffline();
     const offlineMode = useOfflineModeSetting();
+    const serverUnreachable = useServerUnreachable();
 
-    return isNetworkOffline || offlineMode;
+    return isNetworkOffline || offlineMode || serverUnreachable;
 };

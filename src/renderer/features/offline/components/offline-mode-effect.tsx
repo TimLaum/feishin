@@ -5,10 +5,9 @@ import { useOfflineModeSetting } from '/@/renderer/features/offline/store/offlin
 import { AppRoute } from '/@/renderer/router/routes';
 
 /**
- * Bascule vers la page Téléchargements quand le mode hors connexion est activé :
- * c'est la seule surface qui reste entièrement utilisable sans réseau. La perte
- * de connexion seule ne déclenche rien, pour ne pas éjecter l'utilisateur de sa
- * page sur une micro-coupure.
+ * Bascule vers l'accueil (qui liste alors ce qui est téléchargé) quand le mode
+ * hors connexion est forcé. La perte de connexion seule ne déclenche rien, pour
+ * ne pas éjecter l'utilisateur de sa page sur une micro-coupure.
  */
 export const OfflineModeEffect = () => {
     const offlineMode = useOfflineModeSetting();
@@ -17,7 +16,7 @@ export const OfflineModeEffect = () => {
 
     useEffect(() => {
         if (offlineMode && !previousRef.current) {
-            navigate(AppRoute.DOWNLOADS);
+            navigate(AppRoute.HOME);
         }
         previousRef.current = offlineMode;
     }, [navigate, offlineMode]);

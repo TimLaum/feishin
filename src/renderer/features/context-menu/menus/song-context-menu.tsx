@@ -3,7 +3,6 @@ import { useMemo } from 'react';
 import { AddToPlaylistAction } from '/@/renderer/features/context-menu/actions/add-to-playlist-action';
 import { DeleteFromNasAction } from '/@/renderer/features/context-menu/actions/delete-from-nas-action';
 import { DownloadAction } from '/@/renderer/features/context-menu/actions/download-action';
-import { DownloadOfflineAction } from '/@/renderer/features/context-menu/actions/download-offline-action';
 import { EditMetadataAction } from '/@/renderer/features/context-menu/actions/edit-metadata-action';
 import { GetInfoAction } from '/@/renderer/features/context-menu/actions/get-info-action';
 import { GoToAction } from '/@/renderer/features/context-menu/actions/go-to-action';
@@ -43,7 +42,6 @@ export const SongContextMenu = ({ items, type }: SongContextMenuProps) => {
             <SetRatingAction ids={ids} itemType={LibraryItem.SONG} />
             <ContextMenu.Divider />
             <DownloadAction ids={ids} />
-            <DownloadOfflineAction ids={ids} itemType={LibraryItem.SONG} songs={items} />
             <ShareAction ids={ids} itemType={LibraryItem.SONG} />
             <ContextMenu.Divider />
             <GoToAction items={items} />

@@ -197,8 +197,11 @@ interface OfflineStore extends OfflinePersistedState {
     requeue: (key: string) => void;
     // Au démarrage : les téléchargements interrompus repassent en file d'attente
     resetInterrupted: () => void;
+    // Serveur injoignable (non persisté) : détecté par ServerReachabilityManager
+    serverUnreachable: boolean;
     setOfflineMode: (enabled: boolean) => void;
     setProgress: (key: string, progress: number) => void;
+    setServerUnreachable: (unreachable: boolean) => void;
     setSettings: (settings: Partial<OfflineSettings>) => void;
     setSyncStatus: (subKey: string, status: OfflineSyncStatus, error?: null | string) => void;
     subscribe: (input: {
@@ -439,6 +442,8 @@ export const useOfflineStoreBase = create<OfflineStore>()(
                     return changed ? { entries: next } : s;
                 }),
 
+            serverUnreachable: false,
+
             setOfflineMode: (enabled) => set({ offlineMode: enabled }),
 
             setProgress: (key, progress) =>
@@ -455,6 +460,11 @@ export const useOfflineStoreBase = create<OfflineStore>()(
                         },
                     };
                 }),
+
+            setServerUnreachable: (unreachable) =>
+                set((s) =>
+                    s.serverUnreachable === unreachable ? s : { serverUnreachable: unreachable },
+                ),
 
             setSettings: (settings) => set((s) => ({ settings: { ...s.settings, ...settings } })),
 
@@ -614,9 +624,13 @@ export const isOfflineModeEnabled = (): boolean => {
     return useOfflineStoreBase.getState().offlineMode;
 };
 
-/** Mode hors connexion effectif : réseau coupé ou mode forcé par l'utilisateur. */
+/**
+ * Mode hors connexion effectif : réseau coupé, serveur injoignable (ex. NAS
+ * hors de portée alors que le Wi-Fi marche) ou mode forcé par l'utilisateur.
+ */
 export const isOfflineActive = (): boolean => {
-    return useOfflineStoreBase.getState().offlineMode || !navigator.onLine;
+    const { offlineMode, serverUnreachable } = useOfflineStoreBase.getState();
+    return offlineMode || serverUnreachable || !navigator.onLine;
 };
 
 /**
@@ -667,6 +681,10 @@ export const useOfflineSubscriptions = (): Record<string, OfflineSubscription> =
     return useOfflineStoreBase((s) => s.subscriptions);
 };
 
+export const useServerUnreachable = (): boolean => {
+    return useOfflineStoreBase((s) => s.serverUnreachable);
+};
+
 export const useOfflineModeSetting = (): boolean => {
     return useOfflineStoreBase((s) => s.offlineMode);
 };
@@ -691,6 +709,7 @@ export const offlineActions = () => {
         resetInterrupted: s.resetInterrupted,
         setOfflineMode: s.setOfflineMode,
         setProgress: s.setProgress,
+        setServerUnreachable: s.setServerUnreachable,
         setSettings: s.setSettings,
         setSyncStatus: s.setSyncStatus,
         subscribe: s.subscribe,

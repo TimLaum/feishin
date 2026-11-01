@@ -9,6 +9,7 @@ import {
     useOfflineEntries,
 } from '/@/renderer/features/offline/store/offline-store';
 import {
+    collectionName,
     formatBytes,
     subscriptionCoverSrc,
     subscriptionEntries,
@@ -107,16 +108,17 @@ export const OfflineCollectionDetail = ({ subscription }: OfflineCollectionDetai
                             />
                         ) : (
                             <Center h="100%" w="100%">
-                                <Text isMuted>—</Text>
+                                <Text isMuted>-</Text>
                             </Center>
                         )}
                     </div>
 
                     <Stack gap="sm" style={{ minWidth: 0 }}>
                         <Text isMuted size="sm" tt="uppercase">
-                            {t('page.offline.title')}
+                            {t(`page.offline.kind_${subscription.kind}`)} ·{' '}
+                            {t('page.offline.downloaded')}
                         </Text>
-                        <TextTitle order={1}>{subscription.name || subscription.itemId}</TextTitle>
+                        <TextTitle order={1}>{collectionName(subscription)}</TextTitle>
                         <Text isMuted size="sm">
                             {t('page.offline.trackCount', { count: doneSongs.length })} ·{' '}
                             {formatBytes(totalSize)}

@@ -47,7 +47,6 @@ export const CollapsedSidebar = () => {
             ),
             'Artists-all': t('page.sidebar.artists', { postProcess: 'titleCase' }),
             Collections: t('page.sidebar.collections', { postProcess: 'titleCase' }),
-            Downloads: t('page.sidebar.downloads', { postProcess: 'titleCase' }),
             Favorites: t('page.sidebar.favorites', { postProcess: 'titleCase' }),
             Folders: t('page.sidebar.folders', { postProcess: 'titleCase' }),
             Genres: t('page.sidebar.genres', { postProcess: 'titleCase' }),

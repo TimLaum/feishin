@@ -7,6 +7,7 @@ import { ContextMenuController } from '/@/renderer/features/context-menu/context
 import { OfflineDownloadManager } from '/@/renderer/features/offline/components/offline-download-manager';
 import { OfflineModeEffect } from '/@/renderer/features/offline/components/offline-mode-effect';
 import { OfflineSyncManager } from '/@/renderer/features/offline/components/offline-sync-manager';
+import { ServerReachabilityManager } from '/@/renderer/features/offline/components/server-reachability-manager';
 import { OfflineAutoSkipHook } from '/@/renderer/features/offline/hooks/use-offline-auto-skip';
 import { BatchManager } from '/@/renderer/features/web-search/components/batch-manager';
 import { DownloadManager } from '/@/renderer/features/web-search/components/download-manager';
@@ -55,6 +56,7 @@ export const DefaultLayout = ({ shell }: DefaultLayoutProps) => {
             <SimilarDrawer />
             <OfflineDownloadManager />
             <OfflineSyncManager />
+            <ServerReachabilityManager />
             <OfflineModeEffect />
             <OfflineAutoSkipHook />
         </>
