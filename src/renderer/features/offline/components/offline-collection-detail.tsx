@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { OfflineSongRow } from '/@/renderer/features/offline/components/offline-song-row';
@@ -68,11 +68,15 @@ export const OfflineCollectionDetail = ({ subscription }: OfflineCollectionDetai
         [addToQueueByData, doneSongs],
     );
 
+    // Ref : un callback stable garde les lignes mémoïsées malgré la progression
+    const doneSongsRef = useRef(doneSongs);
+    doneSongsRef.current = doneSongs;
+
     const handlePlaySong = useCallback(
         (song: Song) => {
-            addToQueueByData(doneSongs, Play.NOW, song.id);
+            addToQueueByData(doneSongsRef.current, Play.NOW, song.id);
         },
-        [addToQueueByData, doneSongs],
+        [addToQueueByData],
     );
 
     const handleRemove = useCallback(() => {

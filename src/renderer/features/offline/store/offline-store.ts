@@ -1,6 +1,6 @@
 import { del as idbDel, get as idbGet, set as idbSet } from 'idb-keyval';
 import { create } from 'zustand';
-import { persist, PersistStorage } from 'zustand/middleware';
+import { persist, PersistStorage, StorageValue } from 'zustand/middleware';
 
 import { useSettingsStore } from '/@/renderer/store/settings.store';
 import { Song } from '/@/shared/types/domain-types';
@@ -107,16 +107,45 @@ export const DEFAULT_OFFLINE_SETTINGS: OfflineSettings = {
     quality: 'original',
 };
 
+// Écriture IndexedDB regroupée : zustand persist réécrit TOUT le store (chaque entrée
+// porte l'objet Song complet) à chaque set(), soit plusieurs fois par seconde pendant
+// une synchro (progression). On n'écrit que le dernier état, au plus une fois par seconde.
+const PERSIST_DEBOUNCE_MS = 1000;
+const pendingWrites = new Map<string, StorageValue<OfflinePersistedState>>();
+let flushTimer: null | ReturnType<typeof setTimeout> = null;
+
+const flushWrites = () => {
+    if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+    }
+    for (const [name, value] of pendingWrites) {
+        void idbSet(name, value);
+    }
+    pendingWrites.clear();
+};
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', flushWrites);
+    window.addEventListener('beforeunload', flushWrites);
+}
+
 const offlineStorage: PersistStorage<OfflinePersistedState> = {
     getItem: async (name) => {
+        const pending = pendingWrites.get(name);
+        if (pending) return pending;
         const value = await idbGet(name);
         return value ?? null;
     },
     removeItem: async (name) => {
+        pendingWrites.delete(name);
         await idbDel(name);
     },
     setItem: async (name, value) => {
-        await idbSet(name, value);
+        pendingWrites.set(name, value);
+        if (!flushTimer) {
+            flushTimer = setTimeout(flushWrites, PERSIST_DEBOUNCE_MS);
+        }
     },
 };
 
@@ -415,7 +444,10 @@ export const useOfflineStoreBase = create<OfflineStore>()(
             setProgress: (key, progress) =>
                 set((s) => {
                     const entry = s.entries[key];
-                    if (!entry || entry.status !== 'downloading') return s;
+                    // Même pourcentage : pas de nouvel état (ni re-rendu, ni écriture disque)
+                    if (!entry || entry.status !== 'downloading' || entry.progress === progress) {
+                        return s;
+                    }
                     return {
                         entries: {
                             ...s.entries,

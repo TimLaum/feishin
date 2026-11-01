@@ -1,7 +1,7 @@
 import { Progress } from '@mantine/core';
 import { closeAllModals, openModal } from '@mantine/modals';
 import isElectron from 'is-electron';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router';
 
@@ -307,11 +307,15 @@ export const DownloadsContent = () => {
         [addToQueueByData],
     );
 
+    // Ref : un callback stable garde les lignes mémoïsées malgré la progression
+    const doneSongsRef = useRef(doneSongs);
+    doneSongsRef.current = doneSongs;
+
     const handlePlaySong = useCallback(
         (song: Song) => {
-            addToQueueByData(doneSongs, Play.NOW, song.id);
+            addToQueueByData(doneSongsRef.current, Play.NOW, song.id);
         },
-        [addToQueueByData, doneSongs],
+        [addToQueueByData],
     );
 
     const handleOpenCollection = useCallback(
