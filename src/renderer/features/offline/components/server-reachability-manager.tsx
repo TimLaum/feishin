@@ -9,6 +9,8 @@ import { useCurrentServerId } from '/@/renderer/store';
 const CHECK_ONLINE_MS = 60 * 1000;
 const CHECK_OFFLINE_MS = 15 * 1000;
 const PING_TIMEOUT_MS = 6000;
+// Un ping perdu (NAS occupé, Wi-Fi qui hoquette) ne suffit pas à passer hors ligne
+const FAILURES_BEFORE_UNREACHABLE = 2;
 
 /**
  * Monté au niveau du layout : détecte que le serveur ne répond plus alors que
@@ -23,32 +25,33 @@ export const ServerReachabilityManager = () => {
 
         let timer: ReturnType<typeof setTimeout> | undefined;
         let cancelled = false;
-        let unreachable = false;
+        let failures = 0;
 
         const check = async () => {
             clearTimeout(timer);
 
             if (!navigator.onLine) {
-                unreachable = true;
+                failures = FAILURES_BEFORE_UNREACHABLE;
             } else {
                 try {
                     await api.controller.getServerInfo({
                         apiClientProps: { serverId, signal: AbortSignal.timeout(PING_TIMEOUT_MS) },
                     });
-                    unreachable = false;
+                    failures = 0;
                 } catch {
-                    unreachable = true;
+                    failures += 1;
                 }
             }
 
             if (cancelled) return;
-            offlineActions().setServerUnreachable(unreachable);
-            timer = setTimeout(check, unreachable ? CHECK_OFFLINE_MS : CHECK_ONLINE_MS);
+            offlineActions().setServerUnreachable(failures >= FAILURES_BEFORE_UNREACHABLE);
+            // Après un échec, on recontrôle vite pour confirmer (ou non) la coupure
+            timer = setTimeout(check, failures > 0 ? CHECK_OFFLINE_MS : CHECK_ONLINE_MS);
         };
 
         const handleChange = () => void check();
         const handleFocus = () => {
-            if (unreachable) void check();
+            if (failures > 0) void check();
         };
 
         window.addEventListener('online', handleChange);

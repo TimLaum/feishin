@@ -1,4 +1,3 @@
-import { AlbumSearchResult } from '/@/renderer/features/web-search/components/web-search-content';
 import { nasFetch } from '/@/renderer/features/web-search/nas-fetch';
 
 export interface NewReleaseAlbum {
@@ -47,17 +46,6 @@ export const fetchNewReleases = async (
     if (!res.ok) throw new Error(`Failed to load new releases: ${res.statusText}`);
     return res.json();
 };
-
-// AlbumRow / track loading (shared with web-search) expects an AlbumSearchResult shape.
-export const toAlbumSearchResult = (a: NewReleaseAlbum): AlbumSearchResult => ({
-    artist: a.artist,
-    cover_url: a.cover_url,
-    deezer_id: a.deezer_id,
-    id: a.id,
-    source: 'deezer',
-    title: a.title,
-    year: a.year != null ? String(a.year) : a.release_date ? a.release_date.slice(0, 4) : null,
-});
 
 // Stable pseudo-random cover pick per genre (varies across genres, stable across renders).
 export const pickGenreCover = (group: NewReleaseGenreGroup): string | undefined => {

@@ -4,11 +4,11 @@ import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useOfflineStoreBase } from '/@/renderer/features/offline/store/offline-store';
-import { formatBytes } from '/@/renderer/features/offline/utils';
 import {
     SettingOption,
     SettingsSection,
 } from '/@/renderer/features/settings/components/settings-section';
+import { formatSizeString } from '/@/renderer/utils/format';
 import { Button } from '/@/shared/components/button/button';
 import { Group } from '/@/shared/components/group/group';
 import { ConfirmModal } from '/@/shared/components/modal/modal';
@@ -148,7 +148,7 @@ export const OfflineSettings = memo(() => {
             ),
             description: t('page.offline.storageSummary', {
                 count,
-                size: formatBytes(size),
+                size: formatSizeString(size),
             }),
             title: t('page.offline.storage'),
         },

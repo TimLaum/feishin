@@ -36,10 +36,6 @@ const openFolder = (): Promise<void> => {
     return ipcRenderer.invoke('offline-open-folder');
 };
 
-const getDirectory = (): Promise<string> => {
-    return ipcRenderer.invoke('offline-get-directory');
-};
-
 const onProgress = (cb: (data: OfflineDownloadProgress) => void) => {
     const listener = (_event: unknown, data: OfflineDownloadProgress) => cb(data);
     ipcRenderer.on('offline-download-progress', listener);
@@ -51,7 +47,6 @@ const onProgress = (cb: (data: OfflineDownloadProgress) => void) => {
 
 export const offlineDownloads = {
     download,
-    getDirectory,
     onProgress,
     openFolder,
     remove,

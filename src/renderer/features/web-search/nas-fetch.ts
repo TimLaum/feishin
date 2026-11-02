@@ -69,14 +69,3 @@ export const nasFetch = async (path: string, init: RequestInit = {}): Promise<Re
         return fetchPublic(path, init);
     }
 };
-
-/**
- * URL lisible par un <audio> : les extraits YouTube servis par l'API arrivent en
- * adresse locale ; à distance, on passe par le domaine public (identifiant en
- * paramètre, l'API ne l'accepte que sur /preview/).
- */
-export const nasMediaUrl = (url: string): string => {
-    if (route !== 'public' || !url.startsWith(NAS_LAN_BASE)) return url;
-    const sep = url.includes('?') ? '&' : '?';
-    return `${NAS_PUBLIC_BASE}${url.slice(NAS_LAN_BASE.length)}${sep}nd=${encodeURIComponent(navidromeCredential())}`;
-};

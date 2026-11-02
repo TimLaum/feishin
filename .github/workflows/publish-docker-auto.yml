@@ -19,6 +19,8 @@ env:
 
 jobs:
     build-and-push-image:
+        # Fork : pas d'image Docker à chaque tag de release Windows
+        if: github.repository == 'jeffvli/feishin'
         runs-on: ubuntu-latest
         permissions:
             contents: read

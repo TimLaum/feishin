@@ -6,6 +6,7 @@ import { api } from '/@/renderer/api';
 import {
     offlineActions,
     offlineKey,
+    useOfflineProgressStore,
     useOfflineStoreBase,
     useServerUnreachable,
 } from '/@/renderer/features/offline/store/offline-store';
@@ -76,7 +77,7 @@ export const OfflineDownloadManager = () => {
 
         const unsubscribe = offlineApi.onProgress(({ key, received, total }) => {
             if (total > 0) {
-                offlineActions().setProgress(key, Math.round((received / total) * 100));
+                useOfflineProgressStore.setState({ [key]: Math.round((received / total) * 100) });
             }
         });
 
@@ -122,8 +123,8 @@ export const OfflineDownloadManager = () => {
         }
         quotaToastRef.current = false;
 
-        const downloading = Object.values(entries).filter((e) => e.status === 'downloading').length;
-        const slots = MAX_CONCURRENT_DOWNLOADS - downloading - inFlightRef.current.size;
+        // Les 'downloading' d'une session précédente sont remis en file par resetInterrupted
+        const slots = MAX_CONCURRENT_DOWNLOADS - inFlightRef.current.size;
         if (slots <= 0) return;
 
         const queued = Object.entries(entries)
@@ -139,6 +140,7 @@ export const OfflineDownloadManager = () => {
                 const { song } = entry;
 
                 try {
+                    useOfflineProgressStore.setState({ [key]: 0 });
                     markDownloading(key);
 
                     // Qualité "originale" : le fichier tel quel. Sinon on demande au
@@ -170,6 +172,17 @@ export const OfflineDownloadManager = () => {
                         key: offlineKey(song._serverId, song.id),
                         url,
                     });
+
+                    // Retiré pendant le téléchargement (désabonnement, tout supprimer) :
+                    // personne ne réclame plus ce fichier, on l'efface
+                    if (!useOfflineStoreBase.getState().entries[key]) {
+                        await offlineApi.remove(
+                            [result.relPath, result.coverRelPath].filter((path): path is string =>
+                                Boolean(path),
+                            ),
+                        );
+                        return;
+                    }
 
                     markDone(key, {
                         coverRelPath: result.coverRelPath,

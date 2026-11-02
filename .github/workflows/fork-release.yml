@@ -18,7 +18,7 @@ jobs:
 
         steps:
             - name: Checkout git repo
-              uses: actions/checkout@v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
               with:
                   fetch-depth: 0
 
@@ -36,11 +36,11 @@ jobs:
                       --title "${GITHUB_REF_NAME#v}" --notes "${notes:-Pas de changement notable.}"
 
             - name: Install PNPM
-              uses: pnpm/action-setup@v4
+              uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
             # Cache du store pnpm : sans lui, les ~1 200 paquets sont retéléchargés à chaque release
             - name: Install Node (pnpm cache)
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   cache: pnpm
                   node-version: 24

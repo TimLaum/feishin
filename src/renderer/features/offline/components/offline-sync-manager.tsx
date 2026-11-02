@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import isElectron from 'is-electron';
 import { useEffect, useRef, useState } from 'react';
 
+import i18n from '/@/i18n/i18n';
 import {
     isOfflineActive,
     offlineActions,
@@ -128,6 +129,12 @@ export const OfflineSyncManager = () => {
                 try {
                     setSyncStatus(subKey, 'syncing');
                     const songs = await resolveSongs(queryClient, subscription);
+                    // Navidrome répond 200 [] pour un id inconnu (album renommé...) :
+                    // réconcilier effacerait tous les fichiers de la collection.
+                    if (songs.length === 0 && subscription.songKeys.length > 0) {
+                        setSyncStatus(subKey, 'error', i18n.t('page.offline.emptySyncError'));
+                        return;
+                    }
                     reconcile(subKey, songs);
                 } catch (err) {
                     const message = err instanceof Error ? err.message : 'Sync failed';

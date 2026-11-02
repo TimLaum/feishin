@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { confirmUnsubscribe } from '/@/renderer/features/offline/components/offline-download-toggle';
 import { OfflineSongRow } from '/@/renderer/features/offline/components/offline-song-row';
 import {
     offlineActions,
@@ -10,12 +11,12 @@ import {
 } from '/@/renderer/features/offline/store/offline-store';
 import {
     collectionName,
-    formatBytes,
     subscriptionCoverSrc,
     subscriptionEntries,
 } from '/@/renderer/features/offline/utils';
 import { usePlayer } from '/@/renderer/features/player/context/player-context';
 import { AnimatedPage } from '/@/renderer/features/shared/components/animated-page';
+import { formatSizeString } from '/@/renderer/utils/format';
 import { Button } from '/@/shared/components/button/button';
 import { Center } from '/@/shared/components/center/center';
 import { Group } from '/@/shared/components/group/group';
@@ -25,6 +26,8 @@ import { TextTitle } from '/@/shared/components/text-title/text-title';
 import { Text } from '/@/shared/components/text/text';
 import { Song } from '/@/shared/types/domain-types';
 import { Play } from '/@/shared/types/types';
+
+const retry = (key: string) => offlineActions().requeue(key);
 
 interface OfflineCollectionDetailProps {
     subscription: OfflineSubscription;
@@ -81,9 +84,9 @@ export const OfflineCollectionDetail = ({ subscription }: OfflineCollectionDetai
     );
 
     const handleRemove = useCallback(() => {
-        offlineActions().unsubscribe(
+        confirmUnsubscribe([
             subscriptionKey(subscription.serverId, subscription.kind, subscription.itemId),
-        );
+        ]);
     }, [subscription]);
 
     return (
@@ -121,7 +124,7 @@ export const OfflineCollectionDetail = ({ subscription }: OfflineCollectionDetai
                         <TextTitle order={1}>{collectionName(subscription)}</TextTitle>
                         <Text isMuted size="sm">
                             {t('page.offline.trackCount', { count: doneSongs.length })} ·{' '}
-                            {formatBytes(totalSize)}
+                            {formatSizeString(totalSize)}
                         </Text>
                         <Group gap="sm">
                             <Button
@@ -152,6 +155,7 @@ export const OfflineCollectionDetail = ({ subscription }: OfflineCollectionDetai
                             entryKey={row.key}
                             key={row.key}
                             onPlay={handlePlaySong}
+                            onRetry={retry}
                         />
                     ))}
                 </ScrollArea>

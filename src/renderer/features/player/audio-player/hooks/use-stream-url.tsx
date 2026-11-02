@@ -9,7 +9,6 @@ import {
 } from '/@/renderer/features/offline/store/offline-store';
 import { TranscodingConfig, usePlaybackType } from '/@/renderer/store';
 import { QueueSong } from '/@/shared/types/domain-types';
-import { PlayerType } from '/@/shared/types/types';
 
 export function useSongUrl(
     song: QueueSong | undefined,
@@ -21,25 +20,14 @@ export function useSongUrl(
         song?._serverId && current && prior.current[0] === song._uniqueId && prior.current[1],
     );
 
-    // Morceau téléchargé pour l'écoute hors ligne : lecture locale.
-    // Sélecteurs sur primitives : pas de re-render sur les ticks de progression.
-    const playbackType = usePlaybackType();
-    const offlineRelPath = useOfflineStoreBase((s) => {
-        if (!song?._serverId) return undefined;
-        const entry = s.entries[offlineKey(song._serverId, song.id)];
-        return entry?.status === 'done' ? (entry.relPath ?? undefined) : undefined;
-    });
-    const offlineFilePath = useOfflineStoreBase((s) => {
-        if (!song?._serverId) return undefined;
-        const entry = s.entries[offlineKey(song._serverId, song.id)];
-        return entry?.status === 'done' ? (entry.filePath ?? undefined) : undefined;
-    });
-    const offlinePlaybackUrl =
-        playbackType === PlayerType.LOCAL
-            ? offlineFilePath
-            : offlineRelPath
-              ? `feishin://offline/${encodeURI(offlineRelPath)}`
-              : undefined;
+    // Morceau téléchargé pour l'écoute hors ligne : lecture locale. Le sélecteur
+    // ne sert qu'à re-rendre quand le téléchargement se termine.
+    const isDownloaded = useOfflineStoreBase((s) =>
+        song?._serverId ? s.entries[offlineKey(song._serverId, song.id)]?.status === 'done' : false,
+    );
+    // getOfflinePlaybackUrl dépend du type de lecteur : re-rendu s'il change
+    usePlaybackType();
+    const offlinePlaybackUrl = isDownloaded && song ? getOfflinePlaybackUrl(song) : undefined;
 
     const { data: queryStreamUrl } = useQuery({
         enabled: Boolean(song?._serverId) && !shouldReusePrior && !offlinePlaybackUrl,

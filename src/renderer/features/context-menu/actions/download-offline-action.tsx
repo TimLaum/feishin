@@ -2,6 +2,7 @@ import isElectron from 'is-electron';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { confirmUnsubscribe } from '/@/renderer/features/offline/components/offline-download-toggle';
 import {
     offlineActions,
     OfflineSubscriptionKind,
@@ -44,17 +45,18 @@ export const DownloadOfflineAction = ({ ids, items, itemType }: DownloadOfflineA
 
     const onSelect = useCallback(() => {
         if (!kind) return;
-        const { subscribe, unsubscribe } = offlineActions();
-
         if (isSubscribed) {
-            for (const id of ids) {
-                unsubscribe(subscriptionKey(serverId, kind, id));
-            }
-            toast.success({
-                message: t('page.offline.collectionRemoved', { count: ids.length }),
-            });
+            confirmUnsubscribe(
+                ids.map((id) => subscriptionKey(serverId, kind, id)),
+                () =>
+                    toast.success({
+                        message: t('page.offline.collectionRemoved', { count: ids.length }),
+                    }),
+            );
             return;
         }
+
+        const { subscribe } = offlineActions();
 
         const nameById = new Map(items?.map((item) => [item.id, item.name]));
         for (const id of ids) {

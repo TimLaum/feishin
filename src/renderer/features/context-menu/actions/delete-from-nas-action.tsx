@@ -23,6 +23,7 @@ export const DeleteFromNasAction = ({ items }: DeleteFromNasActionProps) => {
                     body: JSON.stringify({
                         album: song.album ?? undefined,
                         artist: song.artistName,
+                        song_id: song.id,
                         title: song.name,
                     }),
                     headers: { 'Content-Type': 'application/json' },

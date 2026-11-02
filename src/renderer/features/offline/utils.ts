@@ -8,13 +8,6 @@ import {
 } from '/@/renderer/features/offline/store/offline-store';
 import { AppRoute } from '/@/renderer/router/routes';
 
-export const formatBytes = (bytes: number): string => {
-    if (bytes <= 0) return '—';
-    const units = ['B', 'KB', 'MB', 'GB'];
-    const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-    return `${(bytes / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
-};
-
 /** Jaquette locale d'un titre téléchargé, avec repli sur l'URL serveur. */
 export const entryCoverSrc = (entry: OfflineEntry): string | undefined => {
     if (entry.coverRelPath) {
@@ -47,16 +40,6 @@ export const subscriptionEntries = (
     return subscription.songKeys
         .map((key) => entries[key])
         .filter((entry): entry is OfflineEntry => Boolean(entry));
-};
-
-export const subscriptionSize = (
-    subscription: OfflineSubscription,
-    entries: Record<string, OfflineEntry>,
-): number => {
-    return subscriptionEntries(subscription, entries).reduce(
-        (total, entry) => total + (entry.size || 0),
-        0,
-    );
 };
 
 /** Page de la collection (rendue en version locale hors connexion par OfflineCollectionGate). */

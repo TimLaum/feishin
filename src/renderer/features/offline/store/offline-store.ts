@@ -14,8 +14,6 @@ export interface OfflineEntry {
     error: null | string;
     // Chemin absolu sur disque (pour mpv)
     filePath: null | string;
-    // 0-100
-    progress: number;
     // Abonnements (ou MANUAL_REF) qui réclament ce fichier. Il n'est effacé du
     // disque que lorsque la dernière référence disparaît : un titre présent
     // dans deux playlists téléchargées survit au retrait de l'une d'elles.
@@ -67,16 +65,11 @@ export type OfflineSubscriptionKind = 'album' | 'favorites' | 'playlist';
 
 export type OfflineSyncStatus = 'error' | 'idle' | 'syncing';
 
-export interface RemoveResult {
-    // Conservées car réclamées par un abonnement
-    kept: number;
-    removed: number;
-}
-
 export const FAVORITES_ITEM_ID = 'all';
 
-// Référence d'un titre téléchargé à l'unité, hors de tout abonnement
-export const MANUAL_REF = 'manual';
+// Référence des titres téléchargés à l'unité en v1 (migration) : sans
+// abonnement, seul "Supprimer tous les téléchargements" les efface.
+const MANUAL_REF = 'manual';
 
 export const OFFLINE_PROTOCOL_PREFIX = 'feishin://offline/';
 
@@ -109,7 +102,7 @@ export const DEFAULT_OFFLINE_SETTINGS: OfflineSettings = {
 
 // Écriture IndexedDB regroupée : zustand persist réécrit TOUT le store (chaque entrée
 // porte l'objet Song complet) à chaque set(), soit plusieurs fois par seconde pendant
-// une synchro (progression). On n'écrit que le dernier état, au plus une fois par seconde.
+// une synchro. On n'écrit que le dernier état, au plus une fois par seconde.
 const PERSIST_DEBOUNCE_MS = 1000;
 const pendingWrites = new Map<string, StorageValue<OfflinePersistedState>>();
 let flushTimer: null | ReturnType<typeof setTimeout> = null;
@@ -156,7 +149,6 @@ const createEntry = (song: Song, ref: string, order: number): OfflineEntry => ({
     coverRelPath: null,
     error: null,
     filePath: null,
-    progress: 0,
     refs: [ref],
     relPath: null,
     size: 0,
@@ -181,8 +173,6 @@ const withoutRef = (entry: OfflineEntry, ref: string): null | OfflineEntry => {
 // ── Store ──────────────────────────────────────────────────────────────────
 
 interface OfflineStore extends OfflinePersistedState {
-    // Téléchargement de titres à l'unité
-    addManual: (songs: Song[]) => number;
     drainDeletions: (relPaths: string[]) => void;
     markDone: (
         key: string,
@@ -192,7 +182,6 @@ interface OfflineStore extends OfflinePersistedState {
     markError: (key: string, error: string) => void;
     // Aligne les titres d'un abonnement sur la liste fraîchement résolue
     reconcile: (subKey: string, songs: Song[]) => void;
-    remove: (keys: string[]) => RemoveResult;
     removeAll: () => void;
     requeue: (key: string) => void;
     // Au démarrage : les téléchargements interrompus repassent en file d'attente
@@ -200,7 +189,6 @@ interface OfflineStore extends OfflinePersistedState {
     // Serveur injoignable (non persisté) : détecté par ServerReachabilityManager
     serverUnreachable: boolean;
     setOfflineMode: (enabled: boolean) => void;
-    setProgress: (key: string, progress: number) => void;
     setServerUnreachable: (unreachable: boolean) => void;
     setSettings: (settings: Partial<OfflineSettings>) => void;
     setSyncStatus: (subKey: string, status: OfflineSyncStatus, error?: null | string) => void;
@@ -217,45 +205,6 @@ interface OfflineStore extends OfflinePersistedState {
 export const useOfflineStoreBase = create<OfflineStore>()(
     persist(
         (set, get) => ({
-            addManual: (songs) => {
-                const existing = get().entries;
-                const next = { ...existing };
-                let added = 0;
-                let order = 0;
-
-                for (const song of songs) {
-                    const key = offlineKey(song._serverId, song.id);
-                    const current = existing[key];
-
-                    if (!current) {
-                        next[key] = createEntry(song, MANUAL_REF, order);
-                        added += 1;
-                        order += 1;
-                        continue;
-                    }
-
-                    // Déjà là via un abonnement : on ajoute la référence manuelle
-                    // pour que le titre survive au retrait de celui-ci.
-                    if (!current.refs.includes(MANUAL_REF)) {
-                        next[key] = { ...current, refs: [...current.refs, MANUAL_REF] };
-                    }
-
-                    if (current.status === 'error') {
-                        next[key] = {
-                            ...(next[key] ?? current),
-                            addedAt: Date.now(),
-                            error: null,
-                            progress: 0,
-                            status: 'queued',
-                        };
-                        added += 1;
-                    }
-                }
-
-                set({ entries: next });
-                return added;
-            },
-
             drainDeletions: (relPaths) =>
                 set((s) => {
                     const done = new Set(relPaths);
@@ -276,7 +225,6 @@ export const useOfflineStoreBase = create<OfflineStore>()(
                                 coverRelPath: result.coverRelPath,
                                 error: null,
                                 filePath: result.filePath,
-                                progress: 100,
                                 relPath: result.relPath,
                                 size: result.size,
                                 status: 'done',
@@ -292,7 +240,7 @@ export const useOfflineStoreBase = create<OfflineStore>()(
                     return {
                         entries: {
                             ...s.entries,
-                            [key]: { ...entry, error: null, progress: 0, status: 'downloading' },
+                            [key]: { ...entry, error: null, status: 'downloading' },
                         },
                     };
                 }),
@@ -320,13 +268,13 @@ export const useOfflineStoreBase = create<OfflineStore>()(
 
                     const entries = { ...s.entries };
                     const deletions = [...s.pendingDeletions];
-                    const songKeys: string[] = [];
+                    const kept = new Set<string>();
                     let order = 0;
 
                     for (const song of songs) {
                         const key = offlineKey(song._serverId, song.id);
-                        if (songKeys.includes(key)) continue;
-                        songKeys.push(key);
+                        if (kept.has(key)) continue;
+                        kept.add(key);
 
                         const current = entries[key];
                         if (!current) {
@@ -334,13 +282,24 @@ export const useOfflineStoreBase = create<OfflineStore>()(
                             order += 1;
                             continue;
                         }
-                        if (!current.refs.includes(subKey)) {
-                            entries[key] = { ...current, refs: [...current.refs, subKey] };
+                        const refs = current.refs.includes(subKey)
+                            ? current.refs
+                            : [...current.refs, subKey];
+                        // Échec précédent : chaque synchro lui redonne sa chance
+                        if (current.status === 'error') {
+                            entries[key] = {
+                                ...current,
+                                addedAt: Date.now(),
+                                error: null,
+                                refs,
+                                status: 'queued',
+                            };
+                        } else if (refs !== current.refs) {
+                            entries[key] = { ...current, refs };
                         }
                     }
 
                     // Titres retirés de l'objet côté serveur depuis la dernière synchro
-                    const kept = new Set(songKeys);
                     for (const key of subscription.songKeys) {
                         if (kept.has(key)) continue;
                         const entry = entries[key];
@@ -363,43 +322,13 @@ export const useOfflineStoreBase = create<OfflineStore>()(
                             [subKey]: {
                                 ...subscription,
                                 lastSyncedAt: Date.now(),
-                                songKeys,
+                                songKeys: [...kept],
                                 syncError: null,
                                 syncStatus: 'idle',
                             },
                         },
                     };
                 }),
-
-            remove: (keys) => {
-                let kept = 0;
-                let removed = 0;
-
-                set((s) => {
-                    const entries = { ...s.entries };
-                    const deletions = [...s.pendingDeletions];
-
-                    for (const key of keys) {
-                        const entry = entries[key];
-                        if (!entry) continue;
-
-                        const nextEntry = withoutRef(entry, MANUAL_REF);
-                        if (nextEntry === null) {
-                            deletions.push(...filesOf(entry));
-                            delete entries[key];
-                            removed += 1;
-                        } else {
-                            // Réclamé par un abonnement : on ne troue pas la collection
-                            entries[key] = nextEntry;
-                            kept += 1;
-                        }
-                    }
-
-                    return { entries, pendingDeletions: deletions };
-                });
-
-                return { kept, removed };
-            },
 
             removeAll: () =>
                 set((s) => ({
@@ -422,7 +351,6 @@ export const useOfflineStoreBase = create<OfflineStore>()(
                                 ...entry,
                                 addedAt: Date.now(),
                                 error: null,
-                                progress: 0,
                                 status: 'queued',
                             },
                         },
@@ -435,7 +363,7 @@ export const useOfflineStoreBase = create<OfflineStore>()(
                     let changed = false;
                     for (const [key, entry] of Object.entries(next)) {
                         if (entry.status === 'downloading') {
-                            next[key] = { ...entry, progress: 0, status: 'queued' };
+                            next[key] = { ...entry, status: 'queued' };
                             changed = true;
                         }
                     }
@@ -445,21 +373,6 @@ export const useOfflineStoreBase = create<OfflineStore>()(
             serverUnreachable: false,
 
             setOfflineMode: (enabled) => set({ offlineMode: enabled }),
-
-            setProgress: (key, progress) =>
-                set((s) => {
-                    const entry = s.entries[key];
-                    // Même pourcentage : pas de nouvel état (ni re-rendu, ni écriture disque)
-                    if (!entry || entry.status !== 'downloading' || entry.progress === progress) {
-                        return s;
-                    }
-                    return {
-                        entries: {
-                            ...s.entries,
-                            [key]: { ...entry, progress },
-                        },
-                    };
-                }),
 
             setServerUnreachable: (unreachable) =>
                 set((s) =>
@@ -587,6 +500,10 @@ export const useOfflineStoreBase = create<OfflineStore>()(
     ),
 );
 
+// Progression des téléchargements en cours (0-100 par clé), hors du store
+// persisté : un tick de progression ne doit pas réécrire IndexedDB.
+export const useOfflineProgressStore = create<Record<string, number>>(() => ({}));
+
 // ── Accès non-hook (moteurs de lecture) ────────────────────────────────────
 
 export const getOfflineEntry = (serverId: string, songId: string): OfflineEntry | undefined => {
@@ -616,14 +533,6 @@ export const isSongDownloaded = (serverId: string, songId: string): boolean => {
     return getOfflineEntry(serverId, songId)?.status === 'done';
 };
 
-export const getOfflineSettings = (): OfflineSettings => {
-    return useOfflineStoreBase.getState().settings ?? DEFAULT_OFFLINE_SETTINGS;
-};
-
-export const isOfflineModeEnabled = (): boolean => {
-    return useOfflineStoreBase.getState().offlineMode;
-};
-
 /**
  * Mode hors connexion effectif : réseau coupé, serveur injoignable (ex. NAS
  * hors de portée alors que le Wi-Fi marche) ou mode forcé par l'utilisateur.
@@ -642,14 +551,6 @@ export const filterOfflineAvailable = <T extends { _serverId: string; id: string
     songs: T[],
 ): T[] => {
     return songs.filter((song) => isSongDownloaded(song._serverId, song.id));
-};
-
-/** Taille totale occupée sur le disque par les titres téléchargés. */
-export const getOfflineTotalSize = (): number => {
-    return Object.values(useOfflineStoreBase.getState().entries).reduce(
-        (total, entry) => total + (entry.size || 0),
-        0,
-    );
 };
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
@@ -689,26 +590,19 @@ export const useOfflineModeSetting = (): boolean => {
     return useOfflineStoreBase((s) => s.offlineMode);
 };
 
-export const useOfflineSettings = (): OfflineSettings => {
-    return useOfflineStoreBase((s) => s.settings ?? DEFAULT_OFFLINE_SETTINGS);
-};
-
 // Les actions sont stables : accès direct sans abonnement
 export const offlineActions = () => {
     const s = useOfflineStoreBase.getState();
     return {
-        addManual: s.addManual,
         drainDeletions: s.drainDeletions,
         markDone: s.markDone,
         markDownloading: s.markDownloading,
         markError: s.markError,
         reconcile: s.reconcile,
-        remove: s.remove,
         removeAll: s.removeAll,
         requeue: s.requeue,
         resetInterrupted: s.resetInterrupted,
         setOfflineMode: s.setOfflineMode,
-        setProgress: s.setProgress,
         setServerUnreachable: s.setServerUnreachable,
         setSettings: s.setSettings,
         setSyncStatus: s.setSyncStatus,

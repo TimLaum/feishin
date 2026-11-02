@@ -3,7 +3,7 @@ import type { IncomingMessage } from 'electron';
 import { app, ipcMain, net, shell } from 'electron';
 import { createReadStream, createWriteStream } from 'fs';
 import { mkdir, rm, stat } from 'fs/promises';
-import { extname, join, resolve, sep } from 'path';
+import { dirname, extname, join, resolve, sep } from 'path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
 
@@ -151,12 +151,15 @@ ipcMain.handle(
         const serverDir = sanitizeSegment(serverSegment ?? 'default');
         const songId = sanitizeSegment(songSegment ?? args.key);
 
-        const targetDir = join(OFFLINE_DIR, serverDir);
-        await mkdir(targetDir, { recursive: true });
-
         const ext = guessAudioExt(args.url, args.container);
         const relPath = `${serverDir}/${songId}.${ext}`;
-        const filePath = join(targetDir, `${songId}.${ext}`);
+        // sanitizeSegment laisse passer "..", d'où la vérification du chemin final
+        const filePath = resolveSafe(relPath);
+        if (!filePath) {
+            throw new Error(`Invalid offline path: ${relPath}`);
+        }
+        const targetDir = dirname(filePath);
+        await mkdir(targetDir, { recursive: true });
 
         const size = await downloadToFile(args.url, filePath, (received, total) => {
             if (!event.sender.isDestroyed()) {
@@ -227,10 +230,6 @@ ipcMain.handle(
 ipcMain.handle('offline-open-folder', async (): Promise<void> => {
     await mkdir(OFFLINE_DIR, { recursive: true });
     await shell.openPath(OFFLINE_DIR);
-});
-
-ipcMain.handle('offline-get-directory', (): string => {
-    return OFFLINE_DIR;
 });
 
 export const OFFLINE_PROTOCOL_PREFIX = 'feishin://offline/';

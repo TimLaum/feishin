@@ -79,6 +79,7 @@ export interface DownloadRequest {
     duration: number;
     source: string;
     title: string;
+    youtube_url?: null | string;
 }
 
 export type RecordType = 'album' | 'compile' | 'ep' | 'single';
@@ -122,6 +123,7 @@ export const toDownloadRequest = (t: WebSearchResult): DownloadRequest => ({
     duration: t.duration || 0,
     source: t.source || 'deezer',
     title: t.title,
+    youtube_url: t.youtube_url ?? null,
 });
 
 export const RECORD_TYPE_LABEL: Record<RecordType, string> = {

@@ -1,5 +1,6 @@
 import { Progress, SegmentedControl, Select } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
+import formatDuration from 'format-duration';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     RiArrowDownSLine,
@@ -63,6 +64,8 @@ export interface WebSearchResult {
     source: string;
     title: string;
     year?: null | string;
+    // Résultats YT Music : la vidéo exacte, que l'API télécharge telle quelle
+    youtube_url?: null | string;
 }
 
 interface DownloadResponse {
@@ -115,6 +118,7 @@ const startDownload = async (result: WebSearchResult): Promise<DownloadResponse>
             duration: result.duration,
             source: result.source,
             title: result.title,
+            youtube_url: result.youtube_url ?? null,
         }),
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',
@@ -135,12 +139,6 @@ const checkInLibrary = async (artist: string, title: string): Promise<{ exists: 
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-const formatDuration = (seconds: number): string => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
-};
 
 export const queueDownload = async (
     result: WebSearchResult,
@@ -332,7 +330,7 @@ export const ResultRow = ({ isPlaying, noArtistLink, onPlay, rank, result }: Res
 
             {/* Duration */}
             <Text isMuted size="xs" style={{ flexShrink: 0 }}>
-                {result.duration ? formatDuration(result.duration) : ''}
+                {result.duration ? formatDuration(result.duration * 1000) : ''}
             </Text>
 
             {/* In-library badge */}

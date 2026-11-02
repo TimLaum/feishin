@@ -58,7 +58,7 @@ export const useOfflineSubscriptionState = (
         const isSyncing = subscription.syncStatus === 'syncing';
         // Tant que la première synchro n'a pas eu lieu, l'abonnement est "en cours"
         // même s'il n'a encore aucun titre à afficher.
-        const isComplete =
+        const isSettled =
             subscription.lastSyncedAt !== null &&
             !isSyncing &&
             doneCount + errorCount >= totalCount;
@@ -66,9 +66,10 @@ export const useOfflineSubscriptionState = (
         return {
             doneCount,
             errorCount,
-            isComplete,
+            // Des titres en échec : terminé, mais pas "complet"
+            isComplete: isSettled && errorCount === 0,
             isSubscribed: true,
-            isWorking: !isComplete,
+            isWorking: !isSettled,
             progress: totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0,
             totalCount,
         };
