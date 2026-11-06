@@ -16,7 +16,8 @@
                 "minWidth": 480,
                 "minHeight": 120,
                 "label": "main",
-                "create": false
+                "create": false,
+                "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,AudioServiceOutOfProcess,AudioServiceSandbox"
             }
         ],
         "security": {
