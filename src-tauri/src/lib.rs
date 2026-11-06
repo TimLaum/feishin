@@ -101,6 +101,20 @@ async fn ipc(
         }
         "electron-migration-done" => migration::done(&app),
 
+        "fs-rename" => {
+            let (from, to) = (arg(&args, 0), arg(&args, 1));
+            let (from, to) = (from.as_str().unwrap_or_default(), to.as_str().unwrap_or_default());
+            Ok(std::fs::rename(from, to).map_or_else(|e| fs_error(from, &e), |_| Value::Null))
+        }
+        // comme fs.rm(path, { force: true }) : un fichier absent n'est pas une erreur
+        "fs-rm" => {
+            let path = arg(&args, 0);
+            let path = path.as_str().unwrap_or_default();
+            Ok(match std::fs::remove_file(path) {
+                Err(e) if e.kind() != std::io::ErrorKind::NotFound => fs_error(path, &e),
+                _ => Value::Null,
+            })
+        }
         "fs-mkdir" | "fs-readdir" | "fs-stat" | "fs-dir-signature" => {
             Ok(fs_op(&channel, arg(&args, 0).as_str().unwrap_or_default()))
         }

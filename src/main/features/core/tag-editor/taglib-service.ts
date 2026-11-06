@@ -15,6 +15,27 @@ const getTagLib = async (): Promise<TagLib> => {
 const BATCH_CONCURRENCY = 8;
 
 /**
+ * Contenu du fichier lu par Node : taglib-wasm refuse les chemins réseau (\\NAS\partage)
+ * qu'on lui donnerait directement.
+ */
+const readAudio = async (filePath: string) => ({
+    data: await fsPromises.readFile(filePath),
+    name: filePath,
+});
+
+/** Écrit à côté puis remplace : une coupure en plein milieu laisse le morceau d'origine intact. */
+const writeAudio = async (filePath: string, data: Uint8Array) => {
+    const temp = `${filePath}.feishin-tmp`;
+    try {
+        await fsPromises.writeFile(temp, data);
+        await fsPromises.rename(temp, filePath);
+    } catch (err) {
+        await fsPromises.rm(temp, { force: true }).catch(() => {});
+        throw err;
+    }
+};
+
+/**
  * Known PROPERTIES stay camelCase for the taglib-wasm JS API. Custom tags use
  * TagLib's ALL_CAPS wire form so read/write/settings keys stay consistent.
  */
@@ -150,7 +171,7 @@ export async function readFilesMetadataBatch(
         async (filePath) => {
             try {
                 await fsPromises.access(filePath, constants.F_OK);
-                const file = await taglib.open(filePath);
+                const file = await taglib.open(await readAudio(filePath));
                 try {
                     const rawProperties = file.properties();
                     const embeddedLyrics = file.getLyrics();
@@ -237,7 +258,8 @@ export async function readFilesMetadataBatch(
 }
 
 /**
- * Writes tag edits and/or artwork to a batch of audio files in-place via taglib-wasm (WASI).
+ * Writes tag edits and/or artwork to a batch of audio files via taglib-wasm (read, edit in
+ * memory, then atomic replace).
  * Only the fields present in `edits`/`removed` are touched — all other existing tags are preserved.
  * Array values are written as true multivalue properties; scalar values remain single-valued.
  * Lyrics use TagLib's dedicated unsynchronized-lyrics API.
@@ -271,7 +293,7 @@ export async function writeFilesTags(
 
     await mapWithConcurrency(writablePaths, BATCH_CONCURRENCY, async (path) => {
         try {
-            await taglib.edit(path, (file) => {
+            const edited = await taglib.edit(await readAudio(path), (file) => {
                 const propertyEdits = Object.entries(edits).filter(([key]) => key !== 'lyrics');
                 const propertyRemovals = removed.filter((key) => key !== 'lyrics');
 
@@ -314,6 +336,7 @@ export async function writeFilesTags(
                     });
                 }
             });
+            await writeAudio(path, edited);
         } catch (err) {
             failedFiles.push({ error: String(err), path });
         }

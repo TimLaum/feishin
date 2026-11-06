@@ -50,9 +50,14 @@ export const promises = {
         if (encoding) return new TextDecoder().decode(bytes);
         return new FileBytes(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     },
+    rename: (from: string, to: string) => fsCall<null>('fs-rename', from, to),
+    rm: (path: string) => fsCall<null>('fs-rm', path),
     stat: async (path: string) => {
         const stat = await fsCall<StatResult>('fs-stat', path);
         return { isDirectory: () => stat.isDirectory, isFile: () => stat.isFile };
+    },
+    writeFile: async (path: string, data: Uint8Array) => {
+        await writeBytes(path, data);
     },
 };
 
