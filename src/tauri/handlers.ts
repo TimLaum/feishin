@@ -85,6 +85,15 @@ Object.entries(neutral).forEach(([channel, value]) => ipcMain.handle(channel, ()
     'visualizer-set-local-surface-visible',
 ].forEach((channel) => ipcMain.on(channel, () => undefined));
 
+// Electron recopiait document.title (« KAKI — Damso — Feishin ») dans le titre de la fenêtre,
+// que lisent Streamlabs et la barre des tâches ; Tauri ne le fait pas
+let windowTitle = '';
+new MutationObserver(() => {
+    if (document.title === windowTitle) return;
+    windowTitle = document.title;
+    win.setTitle(windowTitle).catch(() => {});
+}).observe(document.head, { characterData: true, childList: true, subtree: true });
+
 // Liens externes : dans le navigateur, comme setWindowOpenHandler + shell.openExternal sous Electron
 const isWebUrl = (url: string) => /^https?:\/\//i.test(url);
 window.open = (url?: string | URL) => {
