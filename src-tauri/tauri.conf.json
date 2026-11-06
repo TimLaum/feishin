@@ -1,0 +1,53 @@
+{
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "Feishin",
+    "version": "../package.json",
+    "identifier": "org.timlaum.feishin.tauri",
+    "build": {
+        "frontendDist": "../out/tauri-web",
+        "beforeBuildCommand": "pnpm build:tauri"
+    },
+    "app": {
+        "windows": [
+            {
+                "title": "Feishin",
+                "width": 1440,
+                "height": 900,
+                "minWidth": 480,
+                "minHeight": 120,
+                "label": "main",
+                "create": false
+            }
+        ],
+        "security": {
+            "csp": null
+        }
+    },
+    "bundle": {
+        "active": true,
+        "targets": [
+            "nsis"
+        ],
+        "createUpdaterArtifacts": true,
+        "icon": [
+            "icons/icon.ico",
+            "icons/icon.png"
+        ],
+        "windows": {
+            "nsis": {
+                "installMode": "currentUser"
+            }
+        }
+    },
+    "plugins": {
+        "updater": {
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEIyOEI4QjlGQkUzMkU2NzUKUldSMTVqSytuNHVMc3Z1MExlOTJ0YVJicURRblAxdU5yV2EvMXdhZGZtMm1kWFB2WGo2Umw0NHEK",
+            "endpoints": [
+                "https://github.com/TimLaum/feishin/releases/latest/download/latest.json"
+            ],
+            "windows": {
+                "installMode": "passive"
+            }
+        }
+    }
+}

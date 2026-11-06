@@ -71,7 +71,9 @@ export const FAVORITES_ITEM_ID = 'all';
 // abonnement, seul "Supprimer tous les téléchargements" les efface.
 const MANUAL_REF = 'manual';
 
-export const OFFLINE_PROTOCOL_PREFIX = 'feishin://offline/';
+// Sous Tauri, src/tauri/bridge.ts fournit le préfixe propre à la webview (http://feishin.localhost/...)
+export const OFFLINE_PROTOCOL_PREFIX: string =
+    (window as { FEISHIN_OFFLINE_PREFIX?: string }).FEISHIN_OFFLINE_PREFIX ?? 'feishin://offline/';
 
 export const offlineKey = (serverId: string, songId: string): string => `${serverId}/${songId}`;
 

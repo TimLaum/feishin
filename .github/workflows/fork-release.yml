@@ -65,3 +65,132 @@ jobs:
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+
+    # Version Tauri (Windows) : installeur NSIS + latest.json lu par le module de mise à jour de
+    # l'appli (src/tauri/updater.ts). Ajoutés à la release publiée ci-dessus ; les PC encore sous
+    # Electron continuent de suivre latest.yml.
+    tauri-windows:
+        needs: publish
+        if: github.repository == 'TimLaum/feishin'
+        runs-on: windows-latest
+
+        steps:
+            - name: Check signing key
+              id: keys
+              shell: bash
+              env:
+                  KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+              run: |
+                  if [ -n "$KEY" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
+                  else echo "::warning::Secret TAURI_SIGNING_PRIVATE_KEY absent : version Tauri non publiée"; fi
+
+            - name: Checkout git repo
+              if: steps.keys.outputs.ok == 'true'
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+            - name: Install PNPM
+              if: steps.keys.outputs.ok == 'true'
+              uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+            - name: Install Node (pnpm cache)
+              if: steps.keys.outputs.ok == 'true'
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+              with:
+                  cache: pnpm
+                  node-version: 24
+
+            - name: Install dependencies
+              if: steps.keys.outputs.ok == 'true'
+              run: pnpm install --frozen-lockfile
+
+            # beforeBuildCommand (tauri.conf.json) construit l'interface ; la clé signe les MAJ
+            - name: Build installer
+              if: steps.keys.outputs.ok == 'true'
+              env:
+                  NODE_OPTIONS: --max-old-space-size=4096
+                  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+                  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+              run: pnpm tauri build --bundles nsis
+
+            - name: Upload installer and latest.json
+              if: steps.keys.outputs.ok == 'true'
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  version="${GITHUB_REF_NAME#v}"
+                  setup="src-tauri/target/release/bundle/nsis/Feishin_${version}_x64-setup.exe"
+                  asset="Feishin-Tauri_${version}_x64-setup.exe"
+                  cp "$setup" "$asset"
+                  SIG="$(cat "$setup.sig")" \
+                  URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${asset}" \
+                  VERSION="$version" \
+                  node -e '
+                      const fs = require("fs");
+                      fs.writeFileSync("latest.json", JSON.stringify({
+                          version: process.env.VERSION,
+                          pub_date: new Date().toISOString(),
+                          platforms: { "windows-x86_64": { signature: process.env.SIG, url: process.env.URL } },
+                      }, null, 2));
+                  '
+                  gh release upload "$GITHUB_REF_NAME" "$asset" latest.json --clobber
+
+    # Version Tauri (Android) : APK signé avec la clé du fork (mêmes signatures d'une version à
+    # l'autre, sinon Android refuse d'installer la mise à jour par-dessus).
+    tauri-android:
+        needs: publish
+        if: github.repository == 'TimLaum/feishin'
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check signing key
+              id: keys
+              env:
+                  KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+              run: |
+                  if [ -n "$KEYSTORE" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
+                  else echo "::warning::Secret ANDROID_KEYSTORE_BASE64 absent : APK non publié"; fi
+
+            - name: Checkout git repo
+              if: steps.keys.outputs.ok == 'true'
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+            - name: Install PNPM
+              if: steps.keys.outputs.ok == 'true'
+              uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+            - name: Install Node (pnpm cache)
+              if: steps.keys.outputs.ok == 'true'
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+              with:
+                  cache: pnpm
+                  node-version: 24
+
+            - name: Install dependencies
+              if: steps.keys.outputs.ok == 'true'
+              run: pnpm install --frozen-lockfile
+
+            - name: Build APK
+              if: steps.keys.outputs.ok == 'true'
+              env:
+                  KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+                  KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+                  NODE_OPTIONS: --max-old-space-size=4096
+              run: |
+                  "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018" > /dev/null
+                  rustup target add aarch64-linux-android
+                  echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/feishin.jks"
+                  printf 'password=%s\nkeyAlias=feishin\nstoreFile=%s\n' "$KEYSTORE_PASSWORD" "$RUNNER_TEMP/feishin.jks" > "$RUNNER_TEMP/keystore.properties"
+                  export JAVA_HOME="$JAVA_HOME_17_X64"
+                  export NDK_HOME="$ANDROID_SDK_ROOT/ndk/27.2.12479018"
+                  export FEISHIN_KEYSTORE_PROPERTIES="$RUNNER_TEMP/keystore.properties"
+                  pnpm tauri android build --apk --target aarch64
+
+            - name: Upload APK
+              if: steps.keys.outputs.ok == 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  asset="Feishin-Tauri_${GITHUB_REF_NAME#v}_android-arm64.apk"
+                  cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk "$asset"
+                  gh release upload "$GITHUB_REF_NAME" "$asset" --clobber
