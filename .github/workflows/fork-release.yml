@@ -1,8 +1,10 @@
 name: Fork Release (Windows)
 
 # Déclenché par scripts/fork-release.sh (push d'un tag vX.Y.Z).
-# Publie l'installeur NSIS + latest.yml sur les releases de TimLaum/feishin,
-# là où electron-updater des PC va chercher les mises à jour.
+# Publie la version Tauri sur les releases de TimLaum/feishin :
+# - latest.json : mises à jour de l'appli Tauri (src/tauri/updater.ts) ;
+# - latest.yml : lu par electron-updater des PC encore sous Electron, il désigne l'installeur
+#   Tauri, qui désinstalle Electron et reprend ses données (src-tauri/windows/hooks.nsh).
 on:
     push:
         tags:
@@ -22,8 +24,7 @@ jobs:
               with:
                   fetch-depth: 0
 
-            # Le brouillon est créé avant le build : sinon les uploads parallèles
-            # d'electron-builder créent chacun leur release (doublons sur un même tag).
+            # Le brouillon est créé avant le build, publié une fois tous les fichiers en place.
             # Le texte = commits du fork depuis la dernière release publiée (modale de notes de version).
             - name: Create draft release
               shell: bash
@@ -48,72 +49,15 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
-            - name: Build and upload to draft release
-              shell: bash
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  # Interface (electron-vite) et télécommande web sont indépendantes : en parallèle
-                  pnpm run build:electron &
-                  electron_build=$!
-                  pnpm run build:remote
-                  wait "$electron_build"
-                  pnpm exec electron-builder --config electron-builder-fork.yml --win nsis --x64 --publish always
-
-            - name: Publish release
-              shell: bash
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest
-
-    # Version Tauri (Windows) : installeur NSIS + latest.json lu par le module de mise à jour de
-    # l'appli (src/tauri/updater.ts). Ajoutés à la release publiée ci-dessus ; les PC encore sous
-    # Electron continuent de suivre latest.yml.
-    tauri-windows:
-        needs: publish
-        if: github.repository == 'TimLaum/feishin'
-        runs-on: windows-latest
-
-        steps:
-            - name: Check signing key
-              id: keys
-              shell: bash
-              env:
-                  KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-              run: |
-                  if [ -n "$KEY" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
-                  else echo "::warning::Secret TAURI_SIGNING_PRIVATE_KEY absent : version Tauri non publiée"; fi
-
-            - name: Checkout git repo
-              if: steps.keys.outputs.ok == 'true'
-              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-
-            - name: Install PNPM
-              if: steps.keys.outputs.ok == 'true'
-              uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-
-            - name: Install Node (pnpm cache)
-              if: steps.keys.outputs.ok == 'true'
-              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-              with:
-                  cache: pnpm
-                  node-version: 24
-
-            - name: Install dependencies
-              if: steps.keys.outputs.ok == 'true'
-              run: pnpm install --frozen-lockfile
-
             # beforeBuildCommand (tauri.conf.json) construit l'interface ; la clé signe les MAJ
             - name: Build installer
-              if: steps.keys.outputs.ok == 'true'
               env:
                   NODE_OPTIONS: --max-old-space-size=4096
                   TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
                   TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
               run: pnpm tauri build --bundles nsis
 
-            - name: Upload installer and latest.json
-              if: steps.keys.outputs.ok == 'true'
+            - name: Upload installer, latest.json and latest.yml
               shell: bash
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -124,18 +68,41 @@ jobs:
                   cp "$setup" "$asset"
                   SIG="$(cat "$setup.sig")" \
                   URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${asset}" \
-                  VERSION="$version" \
+                  ASSET="$asset" VERSION="$version" \
                   node -e '
+                      const crypto = require("crypto");
                       const fs = require("fs");
+                      const { ASSET, SIG, URL, VERSION } = process.env;
+                      const now = new Date().toISOString();
                       fs.writeFileSync("latest.json", JSON.stringify({
-                          version: process.env.VERSION,
-                          pub_date: new Date().toISOString(),
-                          platforms: { "windows-x86_64": { signature: process.env.SIG, url: process.env.URL } },
+                          version: VERSION,
+                          pub_date: now,
+                          platforms: { "windows-x86_64": { signature: SIG, url: URL } },
                       }, null, 2));
+                      // format electron-updater : il télécharge cet installeur et le lance en silencieux
+                      const bytes = fs.readFileSync(ASSET);
+                      const sha512 = crypto.createHash("sha512").update(bytes).digest("base64");
+                      fs.writeFileSync("latest.yml", [
+                          `version: ${VERSION}`,
+                          "files:",
+                          `  - url: ${ASSET}`,
+                          `    sha512: ${sha512}`,
+                          `    size: ${bytes.length}`,
+                          `path: ${ASSET}`,
+                          `sha512: ${sha512}`,
+                          `releaseDate: '"'"'${now}'"'"'`,
+                          "",
+                      ].join("\n"));
                   '
-                  gh release upload "$GITHUB_REF_NAME" "$asset" latest.json --clobber
+                  gh release upload "$GITHUB_REF_NAME" "$asset" latest.json latest.yml --clobber
 
-    # Version Tauri (Android) : APK signé avec la clé du fork (mêmes signatures d'une version à
+            - name: Publish release
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+
+    # APK Android signé avec la clé du fork (mêmes signatures d'une version à
     # l'autre, sinon Android refuse d'installer la mise à jour par-dessus).
     tauri-android:
         needs: publish
