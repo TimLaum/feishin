@@ -691,7 +691,12 @@
             "multipleArtworks": "Multiple Artworks",
             "noLocalSongs": "No songs with local file paths found",
             "readPartialFailure": "Could not read metadata from {{count}} of {{total}} file(s)",
-            "writePartialFailure": "Failed to save {{count}} file(s)"
+            "writePartialFailure": "Failed to save {{count}} file(s)",
+            "musicbrainzApplied": "MusicBrainz metadata applied: check the fields, then save",
+            "musicbrainzHint": "Click a result to fill in every field and the cover. Nothing is written to the file until you save.",
+            "musicbrainzNoResult": "No result. Adjust the title or artist, or fill in the fields yourself in the Tags tab.",
+            "musicbrainzSingleOnly": "Pick a single song in the list above to search MusicBrainz.",
+            "musicbrainzTrackNotFound": "This song was not found on the selected release"
         },
         "playlist": {
             "reorder": "Reordering only enabled when sorting by ID"

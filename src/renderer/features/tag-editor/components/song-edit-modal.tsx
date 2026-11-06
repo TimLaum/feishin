@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { EDIT_SCOPE_ALL, useMetadataEditor } from '../hooks/use-metadata-editor';
 import { AddFieldInput } from './add-field-input';
 import { ArtworkPanel } from './artwork-panel';
+import { MusicBrainzPanel } from './musicbrainz-panel';
 import styles from './song-edit-modal.module.css';
 import { TagEditorSettings } from './tag-editor-settings';
 import { TagFieldRow } from './tag-field-row';
@@ -24,6 +25,8 @@ import { Tabs } from '/@/shared/components/tabs/tabs';
 import { Text } from '/@/shared/components/text/text';
 import { LibraryItem, Song } from '/@/shared/types/domain-types';
 
+type EditTab = 'artwork' | 'musicbrainz' | 'settings' | 'tags';
+
 export const SongEditModal = ({ songs }: { songs: Song[] }) => {
     const { t } = useTranslation();
     const currentServer = useCurrentServer();
@@ -35,7 +38,7 @@ export const SongEditModal = ({ songs }: { songs: Song[] }) => {
         utils: window.api.utils,
     });
 
-    const [tab, setTab] = useState<'artwork' | 'settings' | 'tags'>('tags');
+    const [tab, setTab] = useState<EditTab>('tags');
 
     const songsById = useMemo(
         () => new Map(editor.resolvedSongs.map((song) => [song.id, song])),
@@ -165,16 +168,13 @@ export const SongEditModal = ({ songs }: { songs: Song[] }) => {
                     value={editor.editScope}
                 />
             ) : null}
-            <Tabs
-                keepMounted={false}
-                onChange={(value) => setTab(value as 'artwork' | 'settings' | 'tags')}
-                value={tab}
-            >
+            <Tabs keepMounted={false} onChange={(value) => setTab(value as EditTab)} value={tab}>
                 <Tabs.List>
                     <Tabs.Tab value="tags">{t('page.itemDetail.tagsTab', 'Tags')}</Tabs.Tab>
                     <Tabs.Tab value="artwork">
                         {t('page.itemDetail.artworkTab', 'Artwork')}
                     </Tabs.Tab>
+                    <Tabs.Tab value="musicbrainz">MusicBrainz</Tabs.Tab>
                     <Tabs.Tab ml="auto" value="settings">
                         {t('common.settings', 'Settings')}
                     </Tabs.Tab>
@@ -256,6 +256,18 @@ export const SongEditModal = ({ songs }: { songs: Song[] }) => {
                         onRemove={editor.handleRemoveArtwork}
                         removeArtworkLabel={t('page.itemDetail.removeArtwork', 'Remove Artwork')}
                         showRemoveButton={editor.showRemoveArtworkButton}
+                    />
+                </Tabs.Panel>
+
+                <Tabs.Panel value="musicbrainz">
+                    <MusicBrainzPanel
+                        editor={editor}
+                        onApplied={() => setTab('tags')}
+                        song={
+                            editor.resolvedSongs.length === 1
+                                ? editor.resolvedSongs[0]
+                                : (songsById.get(editor.editScope) ?? null)
+                        }
                     />
                 </Tabs.Panel>
 

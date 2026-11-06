@@ -558,7 +558,12 @@
             "multipleArtworks": "Artworks multiple",
             "noLocalSongs": "Aucun titres avec des chemins d'accès locaux trouvée",
             "readPartialFailure": "Impossible de lire les métadonnées de {{count}} fichier(s) sur {{total}}",
-            "writePartialFailure": "Impossible d'enregistrer {{count}} fichier(s)"
+            "writePartialFailure": "Impossible d'enregistrer {{count}} fichier(s)",
+            "musicbrainzApplied": "Métadonnées MusicBrainz appliquées : vérifie les champs puis enregistre",
+            "musicbrainzHint": "Clique sur un résultat pour remplir tous les champs et la pochette. Rien n'est écrit dans le fichier avant l'enregistrement.",
+            "musicbrainzNoResult": "Aucun résultat. Ajuste le titre ou l'artiste, ou remplis les champs toi-même dans l'onglet Tags.",
+            "musicbrainzSingleOnly": "Choisis un seul morceau dans la liste ci-dessus pour chercher sur MusicBrainz.",
+            "musicbrainzTrackNotFound": "Ce morceau est introuvable dans l'édition choisie"
         },
         "playlist": {
             "reorder": "La réorganisation n'est possible que lors du tri par identifiant"
