@@ -2,6 +2,7 @@
 // fournissait, puis charge le renderer inchangé.
 import { lazyMainModule, loadAppPaths } from './electron-shim';
 import { applyWindowFrame } from './handlers';
+import { migrateFromElectron } from './migration';
 import { loadSettings } from './settings-cache';
 import { startUpdater } from './updater';
 
@@ -22,6 +23,7 @@ const ua = navigator.userAgent;
 
 (async () => {
     await Promise.all([loadSettings(), loadAppPaths()]);
+    await migrateFromElectron();
     applyWindowFrame();
     // construit window.api, comme le preload d'Electron
     await import('../preload/index');

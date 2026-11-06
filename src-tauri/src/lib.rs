@@ -1,4 +1,6 @@
 mod discord;
+mod electron_storage;
+mod migration;
 mod offline;
 mod paths;
 mod settings;
@@ -89,6 +91,15 @@ async fn ipc(
             tauri::async_runtime::spawn_blocking(discord::quit);
             Ok(Value::Null)
         }
+
+        // reprise des données de Feishin Electron au premier lancement (src/tauri/bridge.ts)
+        "electron-migration-pending" => {
+            let app = app.clone();
+            tauri::async_runtime::spawn_blocking(move || migration::pending(&app))
+                .await
+                .map_err(|e| e.to_string())?
+        }
+        "electron-migration-done" => migration::done(&app),
 
         "fs-mkdir" | "fs-readdir" | "fs-stat" | "fs-dir-signature" => {
             Ok(fs_op(&channel, arg(&args, 0).as_str().unwrap_or_default()))

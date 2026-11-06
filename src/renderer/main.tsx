@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client';
 
 import { App } from '/@/renderer/app';
 import { queryClient } from '/@/renderer/lib/react-query';
+import { startTauriMigrationExport } from '/@/renderer/tauri-migration-export';
 
 function createIDBPersister(idbValidKey: IDBValidKey = 'reactQuery') {
     return {
@@ -24,6 +25,8 @@ function createIDBPersister(idbValidKey: IDBValidKey = 'reactQuery') {
 }
 
 const indexedDbPersister = createIDBPersister('feishin');
+
+startTauriMigrationExport();
 
 createRoot(document.getElementById('root')!).render(
     <PersistQueryClientProvider

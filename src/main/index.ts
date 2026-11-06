@@ -23,6 +23,7 @@ import {
 import electronLocalShortcut from 'electron-localshortcut';
 import { AppImageUpdater, autoUpdater, MacUpdater, NsisUpdater } from 'electron-updater';
 import { access, constants } from 'fs';
+import { rename, writeFile } from 'fs/promises';
 import path, { join } from 'path';
 import semver from 'semver';
 
@@ -363,6 +364,16 @@ function startPeriodicUpdateChecks(): void {
 }
 
 ipcMain.handle('app-get-downloaded-update', () => downloadedUpdateVersion);
+
+// Passage à Tauri : données du navigateur exportées par le renderer
+// (src/renderer/tauri-migration-export.ts), reprises par la version Tauri au premier lancement.
+ipcMain.on('tauri-migration-export', (_event, json: string) => {
+    const target = join(app.getPath('userData'), 'tauri-migration.json');
+    const temp = `${target}.tmp`;
+    writeFile(temp, json, 'utf8')
+        .then(() => rename(temp, target))
+        .catch((error) => log.warn('Tauri migration export failed', error));
+});
 
 ipcMain.on('app-install-update', () => {
     log.info('Installing downloaded update on user request', { version: downloadedUpdateVersion });
