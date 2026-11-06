@@ -1394,8 +1394,10 @@ const initialState: SettingsState = {
         nativeAspectRatio: false,
         nativeSpotify: false,
         passwordStore: undefined,
-        pathReplace: '',
-        pathReplaceWith: '',
+        // Fork : Navidrome voit la bibliothèque en /music, partagée sur le réseau par le NAS
+        // (éditeur de tags, ouverture du dossier d'un morceau)
+        pathReplace: '/music',
+        pathReplaceWith: '\\\\192.168.1.20\\music',
         playButtonBehavior: Play.NOW,
         playerbarOpenDrawer: false,
         playerbarSlider: {
@@ -2967,10 +2969,18 @@ export const useSettingsStore = createWithEqualityFn<SettingsSlice>()(
                     );
                 }
 
+                if (version < 37) {
+                    // Fork : remplacement de chemin par défaut, sauf s'il a déjà été réglé à la main
+                    if (!state.general.pathReplace && !state.general.pathReplaceWith) {
+                        state.general.pathReplace = '/music';
+                        state.general.pathReplaceWith = '\\\\192.168.1.20\\music';
+                    }
+                }
+
                 return persistedState;
             },
             name: 'store_settings',
-            version: 36,
+            version: 37,
         },
     ),
 );
