@@ -17,7 +17,7 @@
                 "minHeight": 120,
                 "label": "main",
                 "create": false,
-                "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,AudioServiceOutOfProcess,AudioServiceSandbox"
+                "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,AudioServiceOutOfProcess,AudioServiceSandbox,HardwareMediaKeyHandling,MediaSessionService"
             }
         ],
         "security": {

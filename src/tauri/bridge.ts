@@ -58,6 +58,7 @@ const ua = navigator.userAgent;
     // pas de mise à jour intégrée sur Android : l'APK se réinstalle à la main
     if (!ua.includes('Android')) startUpdater();
     await import('../renderer/main');
+    if (ua.includes('Windows')) (await import('./media-controls')).startMediaControls();
 })().catch((error) => {
     console.error('[tauri] démarrage', error);
     document.body.textContent = `Erreur au démarrage : ${error}`;

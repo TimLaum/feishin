@@ -1,5 +1,7 @@
 mod discord;
 mod electron_storage;
+#[cfg(windows)]
+mod media;
 mod migration;
 mod offline;
 mod paths;
@@ -127,6 +129,9 @@ async fn ipc(
             arg(&args, 0).as_str().unwrap_or_default(),
             arg(&args, 1).as_u64().unwrap_or(0),
         )),
+
+        #[cfg(windows)]
+        "media-update" => media::update(&arg(&args, 0)),
 
         "window-dev-tools" => {
             window.open_devtools();
@@ -324,6 +329,7 @@ pub fn run() {
             {
                 allow_audio_device_listing(&window);
                 thumbar::install(app.handle(), &window);
+                media::install(app.handle(), &window);
             }
             #[cfg(not(windows))]
             let _ = window;
