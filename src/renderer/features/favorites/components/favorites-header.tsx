@@ -137,7 +137,7 @@ export const FavoritesHeader = ({ itemType }: FavoritesHeaderProps) => {
                             {itemCount}
                         </LibraryHeaderBar.Badge>
                     </LibraryHeaderBar>
-                    <Group>
+                    <Group wrap="nowrap">
                         {itemType === LibraryItem.SONG && <DownloadOfflineButton />}
                         <ListSearchInput />
                     </Group>
