@@ -1,5 +1,11 @@
 // Point d'entrée du build Tauri (tauri.vite.config.ts) : prépare ce que le preload Electron
 // fournissait, puis charge le renderer inchangé.
+// CSS Mantine en tête : sinon celui des chunks partagés, chargé avant le renderer, passe dessous
+// et Mantine écrase les surcharges du fork (taille des ActionIcon du lecteur).
+import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
+import '@mantine/notifications/styles.css';
+
 import { lazyMainModule, loadAppPaths } from './electron-shim';
 import { applyWindowFrame } from './handlers';
 import { migrateFromElectron } from './migration';
