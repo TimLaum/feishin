@@ -90,20 +90,26 @@ export const buildQuery = (title: string, artist: string) =>
         .filter(Boolean)
         .join(' AND ');
 
-let lastCall = 0;
+// Créneau réservé avant d'attendre : deux appels rapprochés ne partent plus en même temps
+let nextSlot = 0;
 
 const mbFetch = async <T>(path: string, signal?: AbortSignal): Promise<T> => {
-    const wait = lastCall + 1100 - Date.now();
-    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-    lastCall = Date.now();
-    const response = await fetch(`${API}${path}`, {
-        headers: { Accept: 'application/json' },
-        signal,
-    });
-    if (response.status === 503)
-        throw new Error('MusicBrainz est saturé, réessaie dans un instant');
-    if (!response.ok) throw new Error(`MusicBrainz : HTTP ${response.status}`);
-    return response.json();
+    // 503 = surcharge globale de MusicBrainz (X-RateLimit-Zone: global, Retry-After: 1) : on réessaie
+    for (let attempt = 0; ; attempt++) {
+        const now = Date.now();
+        const slot = Math.max(now, nextSlot);
+        nextSlot = slot + 1100;
+        if (slot > now) await new Promise((resolve) => setTimeout(resolve, slot - now));
+        const response = await fetch(`${API}${path}`, {
+            headers: { Accept: 'application/json' },
+            signal,
+        });
+        if (response.status === 503 && attempt < 5) continue;
+        if (response.status === 503)
+            throw new Error('MusicBrainz est saturé, réessaie dans un instant');
+        if (!response.ok) throw new Error(`MusicBrainz : HTTP ${response.status}`);
+        return response.json();
+    }
 };
 
 /** Une ligne par (enregistrement, édition), les plus probables d'abord. */
