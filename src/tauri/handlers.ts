@@ -51,8 +51,6 @@ ipcMain.handle(
 const neutral: Record<string, unknown> = {
     'app-check-for-updates': { updateAvailable: false },
     'app-get-downloaded-update': null,
-    'password-get': null,
-    'password-set': false,
     'power-save-blocker-is-started': false,
 };
 Object.entries(neutral).forEach(([channel, value]) => ipcMain.handle(channel, () => value));
@@ -63,7 +61,6 @@ Object.entries(neutral).forEach(([channel, value]) => ipcMain.handle(channel, ()
     'global-media-keys-enable',
     'input-focus-state',
     'logger-set-level',
-    'password-remove',
     'power-save-blocker-start',
     'power-save-blocker-stop',
     'update-accent-color',

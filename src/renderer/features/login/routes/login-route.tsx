@@ -277,7 +277,9 @@ const LoginRoute = () => {
 
             if (localSettings && values.password) {
                 const saved = await localSettings.passwordSet(values.password, serverId);
-                if (!saved) {
+                // sans ce drapeau, la reconnexion auto à l'expiration de la session est ignorée
+                if (saved) updateServer(serverId, { savePassword: true });
+                else {
                     toast.error({
                         message: t('form.addServer.error', {
                             context: 'savePassword',

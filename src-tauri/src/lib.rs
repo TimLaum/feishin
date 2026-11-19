@@ -4,6 +4,7 @@ mod electron_storage;
 mod media;
 mod migration;
 mod offline;
+mod passwords;
 mod paths;
 mod settings;
 #[cfg(windows)]
@@ -41,6 +42,18 @@ async fn ipc(
     match channel.as_str() {
         "settings-load" => Ok(settings::load(&app)),
         "settings-save" => settings::save(&app, &arg(&args, 0)).map(|_| Value::Null),
+
+        // preload : passwordGet(server), passwordSet(password, server), passwordRemove(server)
+        "password-get" => Ok(json!(passwords::get(&app, arg(&args, 0).as_str().unwrap_or_default()))),
+        "password-set" => Ok(json!(passwords::set(
+            &app,
+            arg(&args, 1).as_str().unwrap_or_default(),
+            arg(&args, 0).as_str().unwrap_or_default(),
+        ))),
+        "password-remove" => {
+            passwords::remove(&app, arg(&args, 0).as_str().unwrap_or_default());
+            Ok(Value::Null)
+        }
 
         "offline-download" => offline::download(&app, arg(&args, 0)).await,
         "offline-remove" => offline::remove(&app, arg_vec(&args, 0)).await,
